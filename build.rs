@@ -8,16 +8,19 @@ fn main() {
     println!("cargo:rerun-if-changed=wrapper.hpp");
 
     let lib_prefix = get_lib_prefix();
+    let include_dir = format!("-I{}/include/jpegxl", lib_prefix);
+    println!("cargo:rustc-link-lib=jpegxl");
+    println!("cargo:rustc-link-search=native={}/lib", lib_prefix);
 
     let bindings = builder()
         .header("wrapper.h")
-        .clang_arg(&lib_prefix)
+        .clang_arg(&include_dir)
         .parse_callbacks(Box::new(bindgen::CargoCallbacks))
         .generate()
         .expect("Unable to generate bindings");
     let cppbindings = builder()
         .header("wrapper.hpp")
-        .clang_arg(&lib_prefix)
+        .clang_arg(&include_dir)
         .clang_arg("-xc++")
         .clang_arg("-std=c++17")
         .enable_cxx_namespaces()
@@ -38,22 +41,13 @@ fn main() {
 
 #[cfg(feature = "use-system-lib")]
 fn get_lib_prefix() -> String {
-    let lib_prefix = match env::var("JPEGXL_PREFIX_DIR") {
+    match env::var("JPEGXL_PREFIX") {
         Ok(path) => path,
         Err(_) => "/usr/local/".to_string(),
-    };
-    println!("cargo:rustc-link-lib=jpegxl");
-    println!("cargo:rustc-link-search={}/lib", lib_prefix);
-
-    format!("-I{}/include/jpegxl", lib_prefix)
+    }
 }
 
 #[cfg(not(feature = "use-system-lib"))]
 fn get_lib_prefix() -> String {
-    let dst = Config::new("jpeg-xl").build();
-
-    println!("cargo:rustc-link-lib=static=libjpegxl");
-    println!("cargo:rustc-link-search=native={}", dst.display());
-
-    format!("-Isrc/jpeg-xl/include")
+    Config::new("jpeg-xl").build().display().to_string()
 }
