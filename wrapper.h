@@ -1,0 +1,1 @@
+#include <jpegxl/decode.h>
