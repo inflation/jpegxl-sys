@@ -1,5 +1,4 @@
 use bindgen::builder;
-use cmake::Config;
 use std::env;
 use std::path::PathBuf;
 
@@ -7,10 +6,12 @@ fn main() {
     println!("cargo:rerun-if-changed=wrapper.h");
     println!("cargo:rerun-if-changed=wrapper.hpp");
 
-    let lib_prefix = get_lib_prefix();
-    let include_dir = format!("-I{}/include/jpegxl", lib_prefix);
+    let jpegxl_prefix = get_jpegxl_prefix();
+    let include_dir =
+        env::var("DEP_JPEGXL_INCLUDE").unwrap_or(format!("-I{}/include/jpegxl", jpegxl_prefix));
+    let lib_dir = env::var("DEP_JPEGXL_LIB").unwrap_or(format!("{}/lib", jpegxl_prefix));
     println!("cargo:rustc-link-lib=jpegxl");
-    println!("cargo:rustc-link-search=native={}/lib", lib_prefix);
+    println!("cargo:rustc-link-search=native={}", lib_dir);
 
     let bindings = builder()
         .header("wrapper.h")
@@ -39,15 +40,13 @@ fn main() {
         .expect("Couldn't write bindings!");
 }
 
-#[cfg(feature = "use-system-lib")]
-fn get_lib_prefix() -> String {
-    match env::var("JPEGXL_PREFIX") {
-        Ok(path) => path,
-        Err(_) => "/usr/local/".to_string(),
-    }
+#[cfg(not(feature = "build-jpegxl"))]
+fn get_jpegxl_prefix() -> String {
+    env::var("DEP_JPEGXL_PREFIX").unwrap_or("/usr/local/".to_string())
 }
 
-#[cfg(not(feature = "use-system-lib"))]
-fn get_lib_prefix() -> String {
+#[cfg(feature = "build-jpegxl")]
+fn get_jpegxl_prefix() -> String {
+    use cmake::Config;
     Config::new("jpeg-xl").build().display().to_string()
 }
