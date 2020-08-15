@@ -13,7 +13,8 @@ repository = "https://github.com/inflation/jpegxl-sys"
 [build-dependencies]
 bindgen = "0.54.1"
 cmake = { version = "0.1.44", optional = true }
+pkg-config = { version = "0.3.18", optional = true }
 
 [features]
-default = []
+default = ["pkg-config"]
 build-jpegxl = ["cmake"]
