@@ -50,9 +50,14 @@ fn get_jpegxl_dir() -> (String, String) {
 
 #[cfg(feature = "build-jpegxl")]
 fn get_jpegxl_dir() -> (String, String) {
+    use cmake::Config;
+    use std::process::Command;
+
+    Command::new("git")
+        .args(&["submodule", "update", "--init", "--recursive"])
+        .output()
+        .expect("Sync submodules failed!");
+
     let prefix = Config::new("jpeg-xl").build().display().to_string();
-    (
-        format!("{}/include/jpegxl", prefix),
-        format!("{}/lib", prefix),
-    )
+    (format!("{}/include", prefix), format!("{}/lib", prefix))
 }

@@ -11,7 +11,7 @@ If you want to build the library within cargo, enable `build-jpegxl` features in
 manually fetch submodules inside `jpeg-xl` source folder:
 
 ```bash
-cd jpeg-xl; git submodule update --init
+git submodule update --init --recursive
 ```
 
 ## Usage
