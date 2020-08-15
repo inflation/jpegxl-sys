@@ -42,8 +42,9 @@ fn get_jpegxl_dir() -> (String, String) {
     let lib = pkg_config::Config::new().probe("libjpegxl").unwrap();
     (
         env::var("DEP_JPEGXL_INCLUDE")
-            .unwrap_or(lib.include_paths.first().unwrap().display().to_string()),
-        env::var("DEP_JPEGXL_LIB").unwrap_or(lib.link_paths.first().unwrap().display().to_string()),
+            .unwrap_or_else(|_| lib.include_paths.first().unwrap().display().to_string()),
+        env::var("DEP_JPEGXL_LIB")
+            .unwrap_or_else(|_| lib.link_paths.first().unwrap().display().to_string()),
     )
 }
 

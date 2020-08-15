@@ -13,3 +13,7 @@ manually fetch submodules inside `jpeg-xl` source folder:
 ```bash
 cd jpeg-xl; git submodule update --init
 ```
+
+## Usage
+
+Check out testing units in `src/lib.rs` for some examples.
