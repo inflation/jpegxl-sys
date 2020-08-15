@@ -60,7 +60,7 @@ mod test {
     }
 
     #[test]
-    fn test_bindings_decoding() -> Result<(), std::io::Error> {
+    fn test_bindings_decoding() -> Result<(), image::ImageError> {
         unsafe {
             let decoder = JpegxlDecoderCreate(ptr::null()); // Default memory manager
             assert!(!decoder.is_null());
@@ -126,8 +126,11 @@ mod test {
                 "Read Whole Image"
             );
 
-            // Cleanups
-            JpegxlDecoderDestroy(decoder);
+            // Write the data to png, should not raise any error
+            use image::{ImageBuffer, RgbImage};
+            let image: RgbImage =
+                ImageBuffer::from_raw(basic_info.xsize, basic_info.ysize, buffer).unwrap();
+            image.save("test/sample.png")?;
         }
         Ok(())
     }
