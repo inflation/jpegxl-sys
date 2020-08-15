@@ -49,11 +49,7 @@ fn get_jpegxl_dir() -> (String, String) {
 
 #[cfg(feature = "build-jpegxl")]
 fn get_jpegxl_dir() -> (String, String) {
-    let prefix = Config::new("jpeg-xl")
-        .build_target("jpegxl")
-        .build()
-        .display()
-        .to_string();
+    let prefix = Config::new("jpeg-xl").build().display().to_string();
     (
         format!("{}/include/jpegxl", prefix),
         format!("{}/lib", prefix),
