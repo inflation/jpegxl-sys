@@ -39,7 +39,7 @@ trait_impl!(
 /// JpegxlDecoderGetBasicInfo(decoder, basic_info.as_mut_ptr());
 /// let basic_info = basic_info.assumu_init();
 /// ```
-trait NewUninit {
+pub trait NewUninit {
     #[inline]
     fn new_uninit() -> std::mem::MaybeUninit<Self>
     where
