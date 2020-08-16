@@ -1,6 +1,6 @@
 [package]
 name = "jpegxl-sys"
-version = "0.1.2"
+version = "0.1.3"
 description = "Rust wrapper for JPEG XL reference implementation"
 authors = ["Inflation <hypernovagama@gmail.com>"]
 edition = "2018"
@@ -10,7 +10,7 @@ repository = "https://github.com/inflation/jpegxl-sys"
 exclude = ["test/"]
 
 [package.metadata.docs.rs]
-features = ["build-jpegxl"]
+features = ["docsrs"]
 no-default-features = true
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
@@ -26,3 +26,4 @@ image = "0.23.8"
 [features]
 default = ["pkg-config"]
 build-jpegxl = ["cmake"]
+docsrs = []

@@ -40,7 +40,7 @@ fn main() {
     }
 }
 
-#[cfg(not(feature = "build-jpegxl"))]
+#[cfg(feature = "default")]
 fn setup_jpegxl() -> String {
     let lib = pkg_config::Config::new().probe("libjpegxl").unwrap();
     let lib_path = env::var("DEP_JPEGXL_LIB")
@@ -98,4 +98,9 @@ fn setup_jpegxl() -> String {
     );
 
     format!("{}/include", prefix)
+}
+
+#[cfg(feature = "docsrs")]
+fn setup_jpegxl() -> String {
+    String::from("include")
 }
