@@ -1,11 +1,16 @@
 #include "../wrapper.h"
+#include "../wrapper.hpp"
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
 
 int main() {
   JpegxlDecoder *dec = JpegxlDecoderCreate(NULL);
-  JpegxlDecoderStatus status = JpegxlDecoderSetParallelRunner(dec, NULL, NULL);
+
+  jpegxl::ThreadParallelRunner parallel_runner;
+
+  JpegxlDecoderStatus status = JpegxlDecoderSetParallelRunner(
+      dec, &parallel_runner.Runner, (void *)&parallel_runner);
   assert(status == JPEGXL_DEC_SUCCESS);
 
   status = JpegxlDecoderSubscribeEvents(dec, JPEGXL_DEC_BASIC_INFO |
@@ -17,7 +22,7 @@ int main() {
   size_t file_size = ftell(fp);
   fseek(fp, 0, SEEK_SET);
 
-  uint8_t *buffer = malloc(file_size * sizeof(uint8_t));
+  uint8_t *buffer = (uint8_t *)malloc(file_size * sizeof(uint8_t));
   fread(buffer, file_size, 1, fp);
 
   enum JpegxlSignature signature = JpegxlSignatureCheck(buffer, 2);
@@ -28,7 +33,8 @@ int main() {
   status = JpegxlDecoderProcessInput(dec, &next_in, &avail_in);
   assert(status == JPEGXL_DEC_BASIC_INFO);
 
-  JpegxlBasicInfo *basic_info = malloc(sizeof(JpegxlBasicInfo));
+  JpegxlBasicInfo *basic_info =
+      (JpegxlBasicInfo *)malloc(sizeof(JpegxlBasicInfo));
   status = JpegxlDecoderGetBasicInfo(dec, basic_info);
   assert(status == JPEGXL_DEC_SUCCESS);
   assert(basic_info->bits_per_sample == 8);
@@ -41,7 +47,7 @@ int main() {
   status = JpegxlDecoderImageOutBufferSize(dec, &pixel_format, &size);
   assert(status == JPEGXL_DEC_SUCCESS);
 
-  uint8_t *image_buffer = malloc(size * sizeof(uint8_t));
+  uint8_t *image_buffer = (uint8_t *)malloc(size * sizeof(uint8_t));
   status =
       JpegxlDecoderSetImageOutBuffer(dec, &pixel_format, image_buffer, size);
   assert(status == JPEGXL_DEC_SUCCESS);

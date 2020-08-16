@@ -14,6 +14,14 @@ manually fetch submodules inside `jpeg-xl` source folder:
 git submodule update --init --recursive
 ```
 
+You need to have a working `llvm` environment. Note that this will link to `libc++` by default
+(since you already use llvm). You can modify it by setting `DEP_JPEGXL_CXXLIB`.
+
 ## Usage
 
 Check out testing units in `src/lib.rs` for some examples.
+
+### Multithreading (WIP)
+
+Since the reference multithread parallel runner needs cpp's `std` and statically linked `jpeg-xl`, it's only enabled
+in `build-jpegxl` feature.
