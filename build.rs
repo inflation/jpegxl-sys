@@ -40,7 +40,7 @@ fn main() {
     }
 }
 
-#[cfg(feature = "default")]
+#[cfg(not(any(feature = "build-jpegxl", feature = "docsrs")))]
 fn setup_jpegxl() -> String {
     let lib = pkg_config::Config::new().probe("libjpegxl").unwrap();
     let lib_path = env::var("DEP_JPEGXL_LIB")
@@ -58,7 +58,7 @@ fn setup_jpegxl() -> String {
     use std::process::Command;
 
     Command::new("git")
-        .args(&["submodule", "update", "--init", "--recursive"])
+        .args(&["clone", "--recursive", "https://gitlab.com/wg1/jpeg-xl"])
         .output()
         .expect("Sync submodules failed!");
 
