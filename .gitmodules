@@ -1,6 +1,0 @@
-[submodule "src/jpeg-xl"]
-	path = src/jpeg-xl
-	url = https://gitlab.com/wg1/jpeg-xl
-[submodule "jpeg-xl"]
-	path = jpeg-xl
-	url = https://gitlab.com/wg1/jpeg-xl

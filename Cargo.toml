@@ -17,13 +17,10 @@ no-default-features = true
 
 [build-dependencies]
 bindgen = "0.55"
-cmake = {version = "0.1.44", optional = true}
+libjxl-src = {version = "0.2.0", optional = true}
 pkg-config = {version = "0.3.18", optional = true}
 
-[dev-dependencies]
-image = "0.23.8"
-
 [features]
-build-jpegxl = ["cmake"]
+build-jpegxl = ["libjxl-src"]
 default = ["pkg-config"]
 docsrs = []

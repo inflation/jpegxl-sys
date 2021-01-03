@@ -23,5 +23,5 @@ Check out testing units in `src/lib.rs` for some examples.
 
 ### Multithreading (WIP)
 
-Since the reference multithread parallel runner needs cpp's `std` and statically linked `jpeg-xl`, it's only enabled
+Since the reference multithread parallel runner needs statically linked `jpeg-xl`, it's only enabled
 in `build-jpegxl` feature.

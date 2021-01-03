@@ -1,1 +1,1 @@
-#include <jpegxl/decode.h>
+#include <jxl/decode.h>
