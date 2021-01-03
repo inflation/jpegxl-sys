@@ -14,8 +14,7 @@ fn main() {
     let mut b = builder()
         .header("wrapper.h");
 
-    #[cfg(feature = "build-jpegxl")]
-    {
+    if cfg!(feature = "build-jpegxl") {
         b = b.header("wrapper-thread.h");
     }
 
