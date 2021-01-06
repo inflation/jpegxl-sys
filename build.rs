@@ -42,13 +42,19 @@ fn setup_jpegxl() -> String {
     use cmake::Config;
     use std::process::Command;
 
+    let source = format!("{}/jpeg-xl", env::var("OUT_DIR").unwrap());
+
     Command::new("git")
-        .args(&["clone", "--recursive", "https://gitlab.com/wg1/jpeg-xl"])
+        .args(&[
+            "clone",
+            "--recursive",
+            "https://gitlab.com/wg1/jpeg-xl",
+            &source,
+        ])
         .output()
         .expect("Sync submodules failed!");
 
-    let prefix = env::var("DEP_JXL_STATIC_PREFIX")
-        .unwrap_or_else(|_| Config::new("jpeg-xl").build().display().to_string());
+    let prefix = Config::new(&source).build().display().to_string();
 
     let lib_path = format!("{}/lib", prefix);
 
