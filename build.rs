@@ -5,11 +5,19 @@ use std::path::PathBuf;
 fn main() {
     println!("cargo:rerun-if-changed=wrapper.h");
 
+    #[cfg(feature = "with-threads")]
+    println!("cargo:rerun-if-changed=wrapper-threads.h");
+
     let include_dir = setup_jpegxl();
     let out_path = PathBuf::from(env::var("OUT_DIR").unwrap());
+    let header = if cfg!(feature = "with-threads") {
+        "wrapper-threads.h"
+    } else {
+        "wrapper.h"
+    };
 
     let bindings = builder()
-        .header("wrapper.h")
+        .header(header)
         .clang_arg(format!("-I{}", &include_dir))
         .parse_callbacks(Box::new(bindgen::CargoCallbacks))
         .generate()
@@ -55,6 +63,7 @@ fn setup_jpegxl() -> String {
         prefix
     );
 
+    #[cfg(feature = "with-threads")]
     println!("cargo:rustc-link-lib=c++"); // For threads implementation
                                           // Find a better way to handle multi-platform
                                           //     for now `bindgen` requires `llvm` anyway

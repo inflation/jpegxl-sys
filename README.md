@@ -12,7 +12,7 @@ inside `jpeg-xl` source folder:
 ```
 
 If you wish to use existing library and dynamically linking, then set the include path and lib path
-with `DEP_JXL_INCLUDE` and `DEP_JXL_LIB` respectively, as well as with `--no-default-features`.
+with `DEP_JXL_INCLUDE` and `DEP_JXL_LIB` respectively, as well as `--no-default-features --features with-threads`.
 
 ## Usage
 
@@ -20,7 +20,6 @@ Check out testing units in `src/lib.rs` for some examples.
 
 ### Multithreading
 
-Fully working now.
-
-Note: Because `jxl_threads` uses `std::thread`, if you build and statically link `jpeg-xl`, you need to
-link to `libc++` standard library. Using dynamic library don't need this requirement.
+Because `jxl_threads` uses `std::thread`, if you build and statically link `jpeg-xl`, you need to
+link `libc++` standard library as well. Using dynamic library doesn't need this requirement.
+If you don't want the dependency, you can disable `with-threads` feature.

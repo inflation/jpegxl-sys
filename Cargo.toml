@@ -19,7 +19,11 @@ no-default-features = true
 bindgen = "0.56"
 cmake = {version = "0.1.45", optional = true}
 
+[dev-dependencies]
+image = "0.23.12"
+
 [features]
 build-jpegxl = ["cmake"]
-default = ["build-jpegxl"]
+default = ["build-jpegxl", "with-threads"]
 docsrs = []
+with-threads = []
