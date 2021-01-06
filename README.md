@@ -4,24 +4,23 @@
 
 ## Building
 
-Install the `jpeg-xl` library system-wide or specify `PKG_CONFIG_PATH` to search for needed paths. Optionally, you can
-overwrite the include path and lib path with `DEP_JPEGXL_INCLUDE` and `DEP_JPEGXL_LIB` respectively.
-
-If you want to build the library within cargo, enable `build-jpegxl` features in your `Cargo.toml`. You may need to
-manually fetch submodules inside `jpeg-xl` source folder:
+Now building `jpeg-xl` and statically linking is by default. You may need to manually fetch dependents
+inside `jpeg-xl` source folder:
 
 ```bash
-git submodule update --init --recursive
+./deps.sh
 ```
 
-You need to have a working `llvm` environment. Note that this will link to `libc++` by default
-(since you already use llvm). You can modify it by setting `DEP_JPEGXL_CXXLIB`.
+If you wish to use existing library and dynamically linking, then set the include path and lib path
+with `DEP_JXL_INCLUDE` and `DEP_JXL_LIB` respectively, as well as with `--no-default-features`.
 
 ## Usage
 
 Check out testing units in `src/lib.rs` for some examples.
 
-### Multithreading (WIP)
+### Multithreading
 
-Since the reference multithread parallel runner needs cpp's `std` and statically linked `jpeg-xl`, it's only enabled
-in `build-jpegxl` feature.
+Fully working now.
+
+Note: Because `jxl_threads` uses `std::thread`, if you build and statically link `jpeg-xl`, you need to
+link to `libc++` standard library. Using dynamic library don't need this requirement.

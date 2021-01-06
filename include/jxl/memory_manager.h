@@ -13,12 +13,12 @@
  * limitations under the License.
  */
 
-/** @file jpegxl/memory_manager.h
+/** @file memory_manager.h
  * @brief Abstraction functions used by JPEG XL to allocate memory.
  */
 
-#ifndef JPEGXL_MEMORY_MANAGER_H_
-#define JPEGXL_MEMORY_MANAGER_H_
+#ifndef JXL_MEMORY_MANAGER_H_
+#define JXL_MEMORY_MANAGER_H_
 
 #include <stddef.h>
 
@@ -54,7 +54,7 @@ typedef void (*jpegxl_free_func)(void* opaque, void* address);
  * These functions, when provided by the caller, will be used to handle memory
  * allocations.
  */
-typedef struct JpegxlMemoryManagerStruct {
+typedef struct JxlMemoryManagerStruct {
   /** The opaque pointer that will be passed as the first parameter to all the
    * functions in this struct. */
   void* opaque;
@@ -67,10 +67,10 @@ typedef struct JpegxlMemoryManagerStruct {
   jpegxl_free_func free;
 
   /* TODO(deymo): Add cache-aligned alloc/free functions here. */
-} JpegxlMemoryManager;
+} JxlMemoryManager;
 
 #if defined(__cplusplus) || defined(c_plusplus)
 }
 #endif
 
-#endif  /* JPEGXL_MEMORY_MANAGER_H_ */
+#endif /* JXL_MEMORY_MANAGER_H_ */

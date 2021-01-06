@@ -13,43 +13,24 @@
  * limitations under the License.
  */
 
-/** @file jpegxl/codestream_header.h
+/** @file codestream_header.h
  * @brief Definitions of structs and enums for the metadata from the JPEG XL
  * codestream headers (signature, metadata, preview dimensions, ...), excluding
  * color encoding which is in color_encoding.h.
  */
 
-#ifndef JPEGXL_CODESTREAM_HEADER_H_
-#define JPEGXL_CODESTREAM_HEADER_H_
+#ifndef JXL_CODESTREAM_HEADER_H_
+#define JXL_CODESTREAM_HEADER_H_
 
 #include <stddef.h>
 #include <stdint.h>
 
-#include "jpegxl/color_encoding.h"
-#include "jpegxl/types.h"
+#include "jxl/color_encoding.h"
+#include "jxl/types.h"
 
 #if defined(__cplusplus) || defined(c_plusplus)
 extern "C" {
 #endif
-
-/** Signature type of the codestream.
- */
-typedef enum {
-  /** JPEG XL codestream.
-   */
-  JPEGXL_SIG_TYPE_JPEGXL = 0,
-
-  /** Transcoded JPEG image signature was found. The decoder will be
-   * able to transcode back to the JPEG codestream passed to the encoder.
-   */
-  JPEGXL_SIG_TYPE_TRANSCODED_JPEG = 1,
-
-  /** JPEG codestream, which would preferably also be decoded using this
-   * decoder in case the codestream contains JPEG XL extensions (marker
-   * segments).
-   */
-  JPEGXL_SIG_TYPE_JPEG = 2,
-} JpegxlSignatureType;
 
 /** Image orientation metadata.
  * Values 1..8 match the EXIF definitions.
@@ -57,96 +38,83 @@ typedef enum {
  * image to the display image.
  */
 typedef enum {
-  JPEGXL_ORIENT_IDENTITY = 1,
-  JPEGXL_ORIENT_FLIP_HORIZONTAL = 2,
-  JPEGXL_ORIENT_ROTATE_180 = 3,
-  JPEGXL_ORIENT_FLIP_VERTICAL = 4,
-  JPEGXL_ORIENT_TRANSPOSE = 5,
-  JPEGXL_ORIENT_ROTATE_90_CW = 6,
-  JPEGXL_ORIENT_ANTI_TRANSPOSE = 7,
-  JPEGXL_ORIENT_ROTATE_90_CCW = 8,
-} JpegxlOrientation;
+  JXL_ORIENT_IDENTITY = 1,
+  JXL_ORIENT_FLIP_HORIZONTAL = 2,
+  JXL_ORIENT_ROTATE_180 = 3,
+  JXL_ORIENT_FLIP_VERTICAL = 4,
+  JXL_ORIENT_TRANSPOSE = 5,
+  JXL_ORIENT_ROTATE_90_CW = 6,
+  JXL_ORIENT_ANTI_TRANSPOSE = 7,
+  JXL_ORIENT_ROTATE_90_CCW = 8,
+} JxlOrientation;
 
 /** Given type of an extra channel.
  */
 typedef enum {
-  JPEGXL_CHANNEL_ALPHA,
-  JPEGXL_CHANNEL_DEPTH,
-  JPEGXL_CHANNEL_SPOT_COLOR,
-  JPEGXL_CHANNEL_SELECTION_MASK,
-  JPEGXL_CHANNEL_BLACK,
-  JPEGXL_CHANNEL_CFA,
-  JPEGXL_CHANNEL_THERMAL,
-  JPEGXL_CHANNEL_RESERVED0,
-  JPEGXL_CHANNEL_RESERVED1,
-  JPEGXL_CHANNEL_RESERVED2,
-  JPEGXL_CHANNEL_RESERVED3,
-  JPEGXL_CHANNEL_RESERVED4,
-  JPEGXL_CHANNEL_RESERVED5,
-  JPEGXL_CHANNEL_RESERVED6,
-  JPEGXL_CHANNEL_RESERVED7,
-  JPEGXL_CHANNEL_UNKNOWN,
-  JPEGXL_CHANNEL_OPTIONAL
-} JpegxlExtraChannelType;
+  JXL_CHANNEL_ALPHA,
+  JXL_CHANNEL_DEPTH,
+  JXL_CHANNEL_SPOT_COLOR,
+  JXL_CHANNEL_SELECTION_MASK,
+  JXL_CHANNEL_BLACK,
+  JXL_CHANNEL_CFA,
+  JXL_CHANNEL_THERMAL,
+  JXL_CHANNEL_RESERVED0,
+  JXL_CHANNEL_RESERVED1,
+  JXL_CHANNEL_RESERVED2,
+  JXL_CHANNEL_RESERVED3,
+  JXL_CHANNEL_RESERVED4,
+  JXL_CHANNEL_RESERVED5,
+  JXL_CHANNEL_RESERVED6,
+  JXL_CHANNEL_RESERVED7,
+  JXL_CHANNEL_UNKNOWN,
+  JXL_CHANNEL_OPTIONAL
+} JxlExtraChannelType;
 
-/** Indicates what the next frame will be "based" on.
- * A full frame (have_crop = false) can be based on a frame if and only if the
- * frame and the base are lossy. The rendered frame will then be the sum of
- * the two. A cropped frame can be based on any kind of frame. The rendered
- * frame will be obtained by blitting. Stored in FrameHeader and
- * ExtraChannelInfo to allow independent control for main and extra channels.
- */
-typedef enum {
-  /** The next frame will be based on the same frame as the current one.
-   */
-  JPEGXL_FRAME_BASE_EXISTING,
-  /** The next frame will be based on the current one.
-   */
-  JPEGXL_FRAME_BASE_CURRENT_FRAME,
-  /** The next frame will be a full frame (have_crop = false) and will not be
-   * based on any frame, but start from a value of 0 in main and extra channels.
-   */
-  JPEGXL_FRAME_BASE_NONE,
-} JpegxlFrameBase;
+/** The codestream preview header */
+typedef struct {
+  /** Preview width in pixels */
+  uint32_t xsize;
 
-/** Indicates how to combine the current frame with the previous "base". Stored
- * in FrameHeader and ExtraChannelInfo to allow independent control for main and
- * extra channels.
+  /** Preview height in pixels */
+  uint32_t ysize;
+} JxlPreviewHeader;
+
+/** The codestream animation header, optionally present in the beginning of
+ * the codestream, and if it is it applies to all animation frames, unlike
+ * JxlFrameHeader which applies to an individual frame.
  */
-typedef enum {
-  /** The new values (in the crop) replace the old ones
-   */
-  JPEGXL_BLEND_MODE_REPLACE,
-  /** The new values (in the crop) get added to the old ones
-   */
-  JPEGXL_BLEND_MODE_ADD,
-  /** The new values (in the crop) replace the old ones if alpha>0.
-   * Not allowed for the first alpha channel.
-   */
-  JPEGXL_BLEND_MODE_BLEND,
-} JpegxlBlendMode;
+typedef struct {
+  /** Numerator of ticks per second of a single animation frame time unit */
+  uint32_t tps_numerator;
+
+  /** Denominator of ticks per second of a single animation frame time unit */
+  uint32_t tps_denominator;
+
+  /** Amount of animation loops, or 0 to repeat infinitely */
+  uint32_t num_loops;
+
+  /** Whether animation time codes are present at animation frames in the
+   * codestream */
+  JXL_BOOL have_timecodes;
+} JxlAnimationHeader;
 
 /** Basic image information. This information is available from the file
  * signature and first part of the codestream header.
  */
-typedef struct JpegxlBasicInfo {
-  // TODO(lode): need additional fields for (transcoded) JPEG? For reusable
-  // fields orientation must be read from Exif APP1. For has_icc_profile: must
-  // look up where ICC profile is guaranteed to be in a JPEG file to be able to
-  // indicate this.
+typedef struct JxlBasicInfo {
+  /* TODO(lode): need additional fields for (transcoded) JPEG? For reusable
+   * fields orientation must be read from Exif APP1. For has_icc_profile: must
+   * look up where ICC profile is guaranteed to be in a JPEG file to be able to
+   * indicate this. */
 
-  // TODO(lode): make struct packed, and/or make this opaque struct with getter
-  // functions (still separate struct from opaque decoder)
+  /* TODO(lode): make struct packed, and/or make this opaque struct with getter
+   * functions (still separate struct from opaque decoder) */
 
   /** Whether the codestream is embedded in the container format. If true,
    * metadata information and extensions may be available in addition to the
    * codestream.
    */
-  JPEGXL_BOOL have_container;
-
-  /** Signature of the codestream.
-   */
-  JpegxlSignatureType signature_type;
+  JXL_BOOL have_container;
 
   /** Width of the image in pixels, before applying orientation.
    */
@@ -182,9 +150,9 @@ typedef struct JpegxlBasicInfo {
    */
   float min_nits;
 
-  /** See the description of relative_to_max_display.
+  /** See the description of @see linear_below.
    */
-  JPEGXL_BOOL relative_to_max_display;
+  JXL_BOOL relative_to_max_display;
 
   /** The tone mapping will leave unchanged (linear mapping) any pixels whose
    * brightness is strictly below this. The interpretation depends on
@@ -193,20 +161,37 @@ typedef struct JpegxlBasicInfo {
    */
   float linear_below;
 
+  /** Whether the data in the codestream is encoded in the original color
+   * profile that is attached to the codestream metadata header, or is
+   * encoded in an internally supported absolute color space (which the decoder
+   * can always convert to linear or non-linear sRGB or to XYB). If the original
+   * profile is used, the decoder outputs pixel data in the color space matching
+   * that profile, but doesn't convert it to any other color space. If the
+   * original profile is not used, the decoder only outputs the data as sRGB
+   * (linear if outputting to floating point, nonlinear with standard sRGB
+   * transfer function if outputting to unsigned integers) but will not convert
+   * it to to the original color profile. The decoder also does not convert to
+   * the target display color profile, but instead will always indicate which
+   * color profile the returned pixel data is encoded in when using @see
+   * JXL_COLOR_PROFILE_TARGET_DATA so that a CMS can be used to convert the
+   * data.
+   */
+  JXL_BOOL uses_original_profile;
+
   /** Indicates a preview image exists near the beginning of the codestream.
    * The preview itself or its dimensions are not included in the basic info.
    */
-  JPEGXL_BOOL have_preview;
+  JXL_BOOL have_preview;
 
   /** Indicates animation frames exist in the codestream. The animation
    * information is not included in the basic info.
    */
-  JPEGXL_BOOL have_animation;
+  JXL_BOOL have_animation;
 
   /** Image orientation, value 1-8 matching the values used by JEITA CP-3451C
    * (Exif version 2.3).
    */
-  JpegxlOrientation orientation;
+  JxlOrientation orientation;
 
   /** Number of additional image channels. Information of all the individual
    * extra channels is not included in the basic info struct, except for the
@@ -227,23 +212,25 @@ typedef struct JpegxlBasicInfo {
 
   /** Whether the alpha channel is premultiplied
    */
-  JPEGXL_BOOL alpha_premultiplied;
-} JpegxlBasicInfo;
+  JXL_BOOL alpha_premultiplied;
+
+  /** Dimensions of encoded preview image, only used if have_preview is
+   * JXL_TRUE.
+   */
+  JxlPreviewHeader preview;
+
+  /** Animation header with global animation properties for all frames, only
+   * used if have_animation is JXL_TRUE.
+   */
+  JxlAnimationHeader animation;
+} JxlBasicInfo;
 
 /** Information for a single extra channel.
  */
 typedef struct {
   /** Given type of an extra channel.
    */
-  JpegxlExtraChannelType type;
-
-  /** Base for next frame
-   */
-  JpegxlFrameBase next_frame_base;
-
-  /** Blend mode for next frame
-   */
-  JpegxlBlendMode blend_mode;
+  JxlExtraChannelType type;
 
   /** Total bits per sample for this channel.
    */
@@ -267,62 +254,57 @@ typedef struct {
   uint32_t name_length;
 
   /** Whether alpha channel uses premultiplied alpha. Only applicable if
-   * type is JPEGXL_CHANNEL_ALPHA.
+   * type is JXL_CHANNEL_ALPHA.
    */
-  JPEGXL_BOOL alpha_associated;
+  JXL_BOOL alpha_associated;
 
   /** Spot color of the current spot channel in linear RGBA. Only applicable if
-   * type is JPEGXL_CHANNEL_SPOT_COLOR.
+   * type is JXL_CHANNEL_SPOT_COLOR.
    */
   float spot_color[4];
 
-  /** Only applicable if type is JPEGXL_CHANNEL_CFA.
+  /** Only applicable if type is JXL_CHANNEL_CFA.
    * TODO(lode): add comment about the meaning of this field.
    */
   uint32_t cfa_channel;
-} JpegxlExtraChannelInfo;
+} JxlExtraChannelInfo;
 
-// TODO(lode): add API to get the codestream header extensions.
+/* TODO(lode): add API to get the codestream header extensions. */
 /** Extensions in the codestream header. */
 typedef struct {
   /** Extension bits. */
   uint64_t extensions;
-} JpegxlHeaderExtensions;
+} JxlHeaderExtensions;
 
-/** The codestream preview header */
+/** The header of one displayed frame. */
 typedef struct {
-  /** Preview width in pixels */
-  uint32_t xsize;
-
-  /** Preview height in pixels */
-  uint32_t ysize;
-} JpegxlPreviewHeader;
-
-/** The codestream animation header */
-typedef struct {
-  /** Indicates there is a single frame followed by zero or more frames with
-   * animation duration of 0. That means, there are animation frames, but they
-   * are laid on top of each other to form a still image, rather than an
-   * animation.
+  /** How long to wait after rendering in ticks. The duration in seconds of a
+   * tick is given by tps_numerator and tps_denominator in JxlAnimationHeader.
    */
-  JPEGXL_BOOL composite_still;
+  uint32_t duration;
 
-  /** Numerator of ticks per second of a single animation frame time unit */
-  uint32_t tps_numerator;
+  /** SMPTE timecode of the current frame in form 0xHHMMSSFF, or 0. The bits are
+   * interpreted from most-significant to least-significant as hour, minute,
+   * second, and frame. If timecode is nonzero, it is strictly larger than that
+   * of a previous frame with nonzero duration. These values are only available
+   * if have_timecodes in JxlAnimationHeader is JXL_TRUE.
+   * This value is only used if have_timecodes in JxlAnimationHeader is
+   * JXL_TRUE.
+   */
+  uint32_t timecode;
 
-  /** Denominator of ticks per second of a single animation frame time unit */
-  uint32_t tps_denominator;
+  /** Length of the frame name in bytes, or 0 if no name.
+   * Excludes null termination character.
+   */
+  uint32_t name_length;
 
-  /** Amount of animation loops, or 0 to repeat infinitely */
-  uint32_t num_loops;
-
-  /** Whether animation time codes are present at animation frames in the
-   * codestream */
-  JPEGXL_BOOL have_timecodes;
-} JpegxlAnimationHeader;
+  /** Indicates this is the last animation frame.
+   */
+  JXL_BOOL is_last;
+} JxlFrameHeader;
 
 #if defined(__cplusplus) || defined(c_plusplus)
 }
 #endif
 
-#endif /* JPEGXL_CODESTREAM_HEADER_H_ */
+#endif /* JXL_CODESTREAM_HEADER_H_ */

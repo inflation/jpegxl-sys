@@ -23,9 +23,6 @@ along with jpegxl-sys.  If not, see <https://www.gnu.org/licenses/>.
 
 include!(concat!(env!("OUT_DIR"), "/bindings.rs"));
 
-#[cfg(feature = "build-jpegxl")]
-include!(concat!(env!("OUT_DIR"), "/cppbindings.rs"));
-
 macro_rules! trait_impl {
     ($x:ty, [$($struct_:ident ),*]) => {
         $(
@@ -34,27 +31,17 @@ macro_rules! trait_impl {
     };
 }
 
-trait_impl!(
-    NewUninit,
-    [
-        JpegxlBasicInfo,
-        JpegxlExtraChannelInfo,
-        JpegxlPreviewHeader,
-        JpegxlColorProfileSource,
-        JpegxlColorEncoding,
-        JpegxlPixelFormat
-    ]
-);
+trait_impl!(NewUninit, [JxlBasicInfo]);
 
-/// Convinient function to just return a block of memory.
+/// Convenient function to just return a block of memory.
 /// You need to assign `basic_info.assume_init()` to use as a Rust struct after passing as a pointer.
 /// # Examples:
 /// ```ignore
 /// # use jpegxl_sys::*;
-/// # let decoder = JpegxlDecoderCreate(std::ptr::null());
-/// let mut basic_info = JpegxlBasicInfo::new_uninit();
-/// JpegxlDecoderGetBasicInfo(decoder, basic_info.as_mut_ptr());
-/// let basic_info = basic_info.assumu_init();
+/// # let decoder = JxlDecoderCreate(std::ptr::null());
+/// let mut basic_info = JxlBasicInfo::new_uninit();
+/// JxlDecoderGetBasicInfo(decoder, basic_info.as_mut_ptr());
+/// let basic_info = basic_info.assume_init();
 /// ```
 pub trait NewUninit {
     #[inline]
@@ -72,126 +59,121 @@ mod test {
     use std::ptr;
 
     #[test]
-    fn test_bindings_version() -> Result<(), std::io::Error> {
+    fn test_bindings_version() {
         unsafe {
-            assert_eq!(JpegxlDecoderVersion(), 1);
+            assert_eq!(JxlDecoderVersion(), 2000);
         }
-        Ok(())
     }
 
-    unsafe fn decode(decoder: *mut JpegxlDecoder) -> Result<(), image::ImageError> {
+    unsafe fn decode(decoder: *mut JxlDecoder) {
         let mut status: u32;
 
         // Stop after getting the basic info and decoding the image
-        status = JpegxlDecoderSubscribeEvents(
+        status = JxlDecoderSubscribeEvents(
             decoder,
-            (JpegxlDecoderStatus_JPEGXL_DEC_BASIC_INFO | JpegxlDecoderStatus_JPEGXL_DEC_FULL_IMAGE)
-                as i32,
+            (JxlDecoderStatus_JXL_DEC_BASIC_INFO | JxlDecoderStatus_JXL_DEC_FULL_IMAGE) as i32,
         );
-        assert_eq!(status, JpegxlDecoderStatus_JPEGXL_DEC_SUCCESS);
+        assert_eq!(status, JxlDecoderStatus_JXL_DEC_SUCCESS);
 
         // Read everything in memory
         let sample = std::fs::read("test/sample.jxl").unwrap();
-        let signature = JpegxlSignatureCheck(sample.as_ptr(), 2);
-        assert_eq!(signature, JpegxlSignature_JPEGXL_SIG_VALID);
+        let signature = JxlSignatureCheck(sample.as_ptr(), 2);
+        assert_eq!(signature, JxlSignature_JXL_SIG_CODESTREAM);
 
         let next_in = &mut sample.as_ptr();
         let mut avail_in = sample.len() as u64;
-        status = JpegxlDecoderProcessInput(decoder, next_in, &mut avail_in);
-        assert_eq!(
-            status, JpegxlDecoderStatus_JPEGXL_DEC_BASIC_INFO,
-            "Read Basic Info"
-        );
 
-        // Get the basic info
-        let mut basic_info = JpegxlBasicInfo::new_uninit();
-        status = JpegxlDecoderGetBasicInfo(decoder, basic_info.as_mut_ptr());
-        assert_eq!(status, JpegxlDecoderStatus_JPEGXL_DEC_SUCCESS);
-        let basic_info = basic_info.assume_init();
-        assert_eq!(basic_info.bits_per_sample, 8, "Bits per sample");
-        assert_eq!(basic_info.xsize, 2122, "Width");
-        assert_eq!(basic_info.ysize, 1433, "Height");
-
-        // Get the buffer size
-        let mut size: u64 = 0;
-        let pixel_format = JpegxlPixelFormat {
-            data_type: JpegxlDataType_JPEGXL_TYPE_UINT8,
+        let pixel_format = JxlPixelFormat {
             num_channels: 3,
+            data_type: JxlDataType_JXL_TYPE_UINT8,
+            endianness: JxlEndianness_JXL_NATIVE_ENDIAN,
+            align: 0,
         };
-        status = JpegxlDecoderImageOutBufferSize(decoder, &pixel_format, &mut size);
-        assert_eq!(status, JpegxlDecoderStatus_JPEGXL_DEC_SUCCESS);
 
-        // Create a buffer to hold decoded image
-        let mut buffer: Vec<u8> = Vec::with_capacity(size as usize);
-        buffer.set_len(size as usize);
-        status = JpegxlDecoderSetImageOutBuffer(
-            decoder,
-            &pixel_format,
-            buffer.as_mut_ptr() as *mut std::ffi::c_void,
-            size,
-        );
-        assert_eq!(status, JpegxlDecoderStatus_JPEGXL_DEC_SUCCESS);
+        let mut basic_info = JxlBasicInfo::new_uninit();
+        let mut buffer: Vec<u8> = Vec::new();
+        let mut xsize = 0;
+        let mut ysize = 0;
 
-        // Read what left of the image
-        status = JpegxlDecoderProcessInput(decoder, next_in, &mut avail_in);
-        assert_eq!(
-            status, JpegxlDecoderStatus_JPEGXL_DEC_FULL_IMAGE,
-            "Read Whole Image"
-        );
+        loop {
+            status = JxlDecoderProcessInput(decoder, next_in, &mut avail_in);
 
-        // Write the data to png, should not raise any error
-        use image::{ImageBuffer, RgbImage};
-        let image: RgbImage =
-            ImageBuffer::from_raw(basic_info.xsize, basic_info.ysize, buffer).unwrap();
-        image.save("test/sample.png")?;
-        std::fs::remove_file("test/sample.png")?;
+            match status {
+                JxlDecoderStatus_JXL_DEC_ERROR => panic!("Decoder error!"),
+                JxlDecoderStatus_JXL_DEC_NEED_MORE_INPUT => {
+                    panic!("Error, already provided all input")
+                }
 
-        Ok(())
+                // Get the basic info
+                JxlDecoderStatus_JXL_DEC_BASIC_INFO => {
+                    status = JxlDecoderGetBasicInfo(decoder, basic_info.as_mut_ptr());
+                    assert_eq!(status, JxlDecoderStatus_JXL_DEC_SUCCESS);
+                    let basic_info = basic_info.assume_init();
+                    xsize = basic_info.xsize;
+                    ysize = basic_info.ysize;
+                    assert_eq!(basic_info.bits_per_sample, 8, "Bits per sample");
+                    assert_eq!(basic_info.xsize, 2122, "Width");
+                    assert_eq!(basic_info.ysize, 1433, "Height");
+                }
+
+                // Get the output buffer
+                JxlDecoderStatus_JXL_DEC_NEED_IMAGE_OUT_BUFFER => {
+                    let mut size: u64 = 0;
+                    status = JxlDecoderImageOutBufferSize(decoder, &pixel_format, &mut size);
+                    assert_eq!(status, JxlDecoderStatus_JXL_DEC_SUCCESS);
+
+                    buffer = Vec::with_capacity(size as usize);
+                    buffer.set_len(size as usize);
+                    status = JxlDecoderSetImageOutBuffer(
+                        decoder,
+                        &pixel_format,
+                        buffer.as_mut_ptr() as *mut std::ffi::c_void,
+                        size,
+                    );
+                    assert_eq!(status, JxlDecoderStatus_JXL_DEC_SUCCESS);
+                }
+
+                JxlDecoderStatus_JXL_DEC_FULL_IMAGE => continue,
+                JxlDecoderStatus_JXL_DEC_SUCCESS => {
+                    assert_eq!(buffer.len(), (xsize * ysize * 3) as usize);
+                    return;
+                }
+                _ => panic!("Unknown decoder status: {}", status),
+            }
+        }
     }
 
     #[test]
-    fn test_bindings_decoding() -> Result<(), image::ImageError> {
+    fn test_bindings_decoding() {
         unsafe {
-            let decoder = JpegxlDecoderCreate(ptr::null()); // Default memory manager
+            let decoder = JxlDecoderCreate(ptr::null()); // Default memory manager
             assert!(!decoder.is_null());
 
             // Simple single thread runner
-            let status = JpegxlDecoderSetParallelRunner(decoder, Option::None, ptr::null_mut());
-            assert_eq!(status, JpegxlDecoderStatus_JPEGXL_DEC_SUCCESS);
+            let status = JxlDecoderSetParallelRunner(decoder, Option::None, ptr::null_mut());
+            assert_eq!(status, JxlDecoderStatus_JXL_DEC_SUCCESS);
 
-            decode(decoder)?;
+            decode(decoder);
         }
-        Ok(())
     }
 
     #[test]
-    #[cfg(feature = "build-jpegxl")]
-    fn test_bindings_thread_pool() -> Result<(), std::io::Error> {
-        use root::jpegxl::{ThreadParallelRunner, ThreadParallelRunner_Runner};
+    fn test_bindings_thread_pool() {
         unsafe {
-            let mut thread_runner = ThreadParallelRunner::new(8);
-            let opaque_ptr =
-                &mut thread_runner as *mut ThreadParallelRunner as *mut std::ffi::c_void;
-            let parallel_runner = ThreadParallelRunner_Runner
-                as unsafe extern "C" fn(
-                    *mut std::ffi::c_void,
-                    *mut std::ffi::c_void,
-                    std::option::Option<unsafe extern "C" fn(*mut std::ffi::c_void, u64) -> i32>,
-                    std::option::Option<unsafe extern "C" fn(*mut std::ffi::c_void, u32, u64)>,
-                    u32,
-                    u32,
-                ) -> i32;
+            let runner = JxlThreadParallelRunnerCreate(
+                std::ptr::null(),
+                JxlThreadParallelRunnerDefaultNumWorkerThreads(),
+            );
 
-            let decoder = JpegxlDecoderCreate(ptr::null()); // Default memory manager
+            let decoder = JxlDecoderCreate(ptr::null()); // Default memory manager
             assert!(!decoder.is_null());
 
             // Parallel multithread runner
-            let status = JpegxlDecoderSetParallelRunner(decoder, Some(parallel_runner), opaque_ptr);
-            assert_eq!(status, JpegxlDecoderStatus_JPEGXL_DEC_SUCCESS);
+            let status =
+                JxlDecoderSetParallelRunner(decoder, Some(JxlThreadParallelRunner), runner);
+            assert_eq!(status, JxlDecoderStatus_JXL_DEC_SUCCESS);
 
-            panic!("TODO: Figure out if there is a dead lock");
             decode(decoder);
         }
-        Ok(())
     }
 }

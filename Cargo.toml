@@ -7,7 +7,7 @@ license = "GPL-3.0-or-later"
 name = "jpegxl-sys"
 readme = "README.md"
 repository = "https://github.com/inflation/jpegxl-sys"
-version = "0.1.6"
+version = "0.2.0"
 
 [package.metadata.docs.rs]
 features = ["docsrs"]
@@ -16,14 +16,10 @@ no-default-features = true
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [build-dependencies]
-bindgen = "0.55"
-cmake = {version = "0.1.44", optional = true}
-pkg-config = {version = "0.3.18", optional = true}
-
-[dev-dependencies]
-image = "0.23.8"
+bindgen = "0.56"
+cmake = {version = "0.1.45", optional = true}
 
 [features]
 build-jpegxl = ["cmake"]
-default = ["pkg-config"]
+default = ["build-jpegxl"]
 docsrs = []
