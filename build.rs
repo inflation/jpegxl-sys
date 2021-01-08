@@ -5,12 +5,12 @@ use std::path::PathBuf;
 fn main() {
     println!("cargo:rerun-if-changed=wrapper.h");
 
-    #[cfg(feature = "with-threads")]
+    #[cfg(not(feature = "without-threads"))]
     println!("cargo:rerun-if-changed=wrapper-threads.h");
 
     let include_dir = setup_jpegxl();
     let out_path = PathBuf::from(env::var("OUT_DIR").unwrap());
-    let header = if cfg!(feature = "with-threads") {
+    let header = if cfg!(not(feature = "without-threads")) {
         "wrapper-threads.h"
     } else {
         "wrapper.h"
@@ -19,22 +19,13 @@ fn main() {
     let bindings = builder()
         .header(header)
         .clang_arg(format!("-I{}", &include_dir))
+        .blacklist_function("strtold") // Returned long double becomes u128
         .parse_callbacks(Box::new(bindgen::CargoCallbacks))
         .generate()
         .expect("Unable to generate bindings");
     bindings
         .write_to_file(out_path.join("bindings.rs"))
         .expect("Couldn't write bindings!");
-}
-
-#[cfg(not(any(feature = "build-jpegxl", feature = "docsrs")))]
-fn setup_jpegxl() -> String {
-    let lib_path = env::var("DEP_JXL_LIB").expect("Library path is not set!");
-    println!("cargo:rustc-link-lib=jxl");
-    println!("cargo:rustc-link-lib=jxl_threads");
-    println!("cargo:rustc-link-search=native={}", lib_path);
-
-    env::var("DEP_JXL_INCLUDE").expect("Include path is not set!")
 }
 
 #[cfg(feature = "build-jpegxl")]
@@ -59,7 +50,10 @@ fn setup_jpegxl() -> String {
     let lib_path = format!("{}/lib", prefix);
 
     println!("cargo:rustc-link-lib=static=jxl");
+
+    #[cfg(not(feature = "without-threads"))]
     println!("cargo:rustc-link-lib=static=jxl_threads");
+
     println!("cargo:rustc-link-lib=static=hwy");
     println!("cargo:rustc-link-search=native={}", lib_path);
 
@@ -69,7 +63,7 @@ fn setup_jpegxl() -> String {
         prefix
     );
 
-    #[cfg(feature = "with-threads")]
+    #[cfg(not(feature = "without-threads"))]
     println!("cargo:rustc-link-lib=c++"); // For threads implementation
                                           // Find a better way to handle multi-platform
                                           //     for now `bindgen` requires `llvm` anyway
@@ -80,4 +74,17 @@ fn setup_jpegxl() -> String {
 #[cfg(feature = "docsrs")]
 fn setup_jpegxl() -> String {
     String::from("include")
+}
+
+#[cfg(not(any(feature = "build-jpegxl", feature = "docsrs")))]
+fn setup_jpegxl() -> String {
+    let lib_path = env::var("DEP_JXL_LIB").expect("Library path is not set!");
+    println!("cargo:rustc-link-lib=jxl");
+
+    #[cfg(not(feature = "without-threads"))]
+    println!("cargo:rustc-link-lib=jxl_threads");
+
+    println!("cargo:rustc-link-search=native={}", lib_path);
+
+    env::var("DEP_JXL_INCLUDE").expect("Include path is not set!")
 }

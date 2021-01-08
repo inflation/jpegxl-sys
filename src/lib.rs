@@ -20,6 +20,7 @@ along with jpegxl-sys.  If not, see <https://www.gnu.org/licenses/>.
 #![allow(non_snake_case)]
 #![allow(clippy::missing_safety_doc)]
 #![allow(clippy::redundant_static_lifetimes)]
+#![allow(clippy::clippy::too_many_arguments)]
 
 include!(concat!(env!("OUT_DIR"), "/bindings.rs"));
 
@@ -56,7 +57,7 @@ pub trait NewUninit {
 #[cfg(test)]
 mod test {
     use super::*;
-    use std::{io::Write, ptr};
+    use std::ptr;
 
     use image::io::Reader as ImageReader;
     use image::ImageError;
