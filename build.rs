@@ -28,7 +28,7 @@ fn main() {
         .expect("Couldn't write bindings!");
 }
 
-#[cfg(feature = "build-jpegxl")]
+#[cfg(not(any(feature = "without-build", feature = "docsrs")))]
 fn setup_jpegxl() -> String {
     use cmake::Config;
     use std::process::Command;
@@ -76,7 +76,7 @@ fn setup_jpegxl() -> String {
     String::from("include")
 }
 
-#[cfg(not(any(feature = "build-jpegxl", feature = "docsrs")))]
+#[cfg(feature = "without-build")]
 fn setup_jpegxl() -> String {
     let lib_path = env::var("DEP_JXL_LIB").expect("Library path is not set!");
     println!("cargo:rustc-link-lib=jxl");

@@ -32,7 +32,7 @@ macro_rules! trait_impl {
     };
 }
 
-trait_impl!(NewUninit, [JxlBasicInfo]);
+trait_impl!(NewUninit, [JxlBasicInfo, JxlPixelFormat]);
 
 /// Convenient function to just return a block of memory.
 /// You need to assign `basic_info.assume_init()` to use as a Rust struct after passing as a pointer.

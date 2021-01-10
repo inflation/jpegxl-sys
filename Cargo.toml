@@ -7,7 +7,7 @@ license = "GPL-3.0-or-later"
 name = "jpegxl-sys"
 readme = "README.md"
 repository = "https://github.com/inflation/jpegxl-sys"
-version = "0.2.1"
+version = "0.2.2"
 
 [package.metadata.docs.rs]
 features = ["docsrs"]
@@ -17,13 +17,13 @@ no-default-features = true
 
 [build-dependencies]
 bindgen = "0.56"
-cmake = {version = "0.1.45", optional = true}
+cmake = "0.1.45"
 
 [dev-dependencies]
 image = "0.23.12"
 
 [features]
-build-jpegxl = ["cmake"]
-default = ["build-jpegxl"]
+default = []
 docsrs = []
+without-build = []
 without-threads = []
