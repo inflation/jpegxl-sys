@@ -38,12 +38,14 @@ fn setup_jpegxl() -> String {
     Command::new("git")
         .args(&[
             "clone",
+            "--depth=1",
+            "--branch=v0.2",
             "--recursive",
             "https://gitlab.com/wg1/jpeg-xl",
             &source,
         ])
         .output()
-        .expect("Sync submodules failed!");
+        .expect("Fetching source code failed!");
 
     let prefix = Config::new(&source).build().display().to_string();
 
@@ -86,5 +88,5 @@ fn setup_jpegxl() -> String {
 
     println!("cargo:rustc-link-search=native={}", lib_path);
 
-    env::var("DEP_JXL_INCLUDE").expect("Include path is not set!")
+    env::var("DEP_JXL_INCLUDE").unwrap_or_else(|_| "include".to_owned())
 }
