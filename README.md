@@ -4,7 +4,7 @@
 
 ## Building
 
-Now building `jpeg-xl` and statically linking is by default.
+Now building `jpeg-xl` and statically linking is by default, requiring `git` command in `PATH`.
 
 If you wish to use existing library and dynamically linking, then set the include path and lib path
 with `DEP_JXL_INCLUDE` and `DEP_JXL_LIB` respectively, as well as `--features without-build`.

@@ -40,12 +40,19 @@ fn setup_jpegxl() -> String {
             "clone",
             "--depth=1",
             "--branch=v0.2",
-            "--recursive",
             "https://gitlab.com/wg1/jpeg-xl",
             &source,
         ])
-        .output()
+        .status()
         .expect("Fetching source code failed!");
+    Command::new("git")
+        .args(&["-C", &source, "submodule", "init"])
+        .status()
+        .expect("Initializing submodule failed!");
+    Command::new("git")
+        .args(&["-C", &source, "submodule", "update", "--depth=1"])
+        .status()
+        .expect("Updating submodule failed!");
 
     let prefix = Config::new(&source).build().display().to_string();
 
