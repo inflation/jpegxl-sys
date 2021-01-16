@@ -21,6 +21,11 @@ fn main() -> Result<()> {
         .header(header)
         .clang_arg(format!("-I{}", &include_dir))
         .blacklist_function("strtold") // Returned long double becomes u128, which is not safe
+        .blacklist_function("qecvt")
+        .blacklist_function("qfcvt")
+        .blacklist_function("qgcvt")
+        .blacklist_function("qecvt_r")
+        .blacklist_function("qfcvt_r")
         .parse_callbacks(Box::new(bindgen::CargoCallbacks))
         .generate()
         .expect("Unable to generate bindings!");

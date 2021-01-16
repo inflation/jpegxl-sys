@@ -22,6 +22,8 @@ along with jpegxl-sys.  If not, see <https://www.gnu.org/licenses/>.
 #![allow(clippy::missing_safety_doc)]
 #![allow(clippy::redundant_static_lifetimes)]
 #![allow(clippy::clippy::too_many_arguments)]
+#![allow(clippy::unreadable_literal)]
+#![allow(clippy::unseparated_literal_suffix)]
 
 include!(concat!(env!("OUT_DIR"), "/bindings.rs"));
 
@@ -47,6 +49,7 @@ trait_impl!(NewUninit, [JxlBasicInfo, JxlPixelFormat]);
 /// ```
 pub trait NewUninit {
     #[inline]
+    #[must_use]
     fn new_uninit() -> std::mem::MaybeUninit<Self>
     where
         Self: std::marker::Sized,
