@@ -1,15 +1,16 @@
+use anyhow::{Context, Result};
 use bindgen::builder;
 use std::env;
 use std::path::PathBuf;
 
-fn main() {
+fn main() -> Result<()> {
     println!("cargo:rerun-if-changed=wrapper.h");
 
     #[cfg(not(feature = "without-threads"))]
     println!("cargo:rerun-if-changed=wrapper-threads.h");
 
-    let include_dir = setup_jpegxl();
-    let out_path = PathBuf::from(env::var("OUT_DIR").unwrap());
+    let include_dir = setup_jpegxl()?;
+    let out_path = PathBuf::from(env::var("OUT_DIR")?);
     let header = if cfg!(not(feature = "without-threads")) {
         "wrapper-threads.h"
     } else {
@@ -19,21 +20,21 @@ fn main() {
     let bindings = builder()
         .header(header)
         .clang_arg(format!("-I{}", &include_dir))
-        .blacklist_function("strtold") // Returned long double becomes u128
+        .blacklist_function("strtold") // Returned long double becomes u128, which is not safe
         .parse_callbacks(Box::new(bindgen::CargoCallbacks))
         .generate()
-        .expect("Unable to generate bindings");
+        .expect("Unable to generate bindings!");
     bindings
         .write_to_file(out_path.join("bindings.rs"))
-        .expect("Couldn't write bindings!");
+        .context("Couldn't write bindings!")
 }
 
-fn setup_jpegxl() -> String {
+fn setup_jpegxl() -> Result<String> {
     cfg_if::cfg_if! {
         if #[cfg(feature = "docsrs")] {
-            String::from("include")
+            Ok(String::from("include"))
         } else if #[cfg(feature = "without-build")] {
-            let lib_path = env::var("DEP_JXL_LIB").expect("Library path is not set!");
+            let lib_path = env::var("DEP_JXL_LIB").context("Library path is not set!")?;
             println!("cargo:rustc-link-lib=jxl");
 
             #[cfg(not(feature = "without-threads"))]
@@ -41,12 +42,12 @@ fn setup_jpegxl() -> String {
 
             println!("cargo:rustc-link-search=native={}", lib_path);
 
-            env::var("DEP_JXL_INCLUDE").unwrap_or_else(|_| "include".to_owned())
+            Ok(env::var("DEP_JXL_INCLUDE").unwrap_or_else(|_| "include".to_owned()))
         } else {
             use cmake::Config;
             use std::process::Command;
 
-            let source = format!("{}/jpeg-xl", env::var("OUT_DIR").unwrap());
+            let source = format!("{}/jpeg-xl", env::var("OUT_DIR")?);
 
             Command::new("git")
                 .args(&[
@@ -57,15 +58,15 @@ fn setup_jpegxl() -> String {
                     &source,
                 ])
                 .status()
-                .expect("Fetching source code failed!");
+                .context("Fetching source code failed!")?;
             Command::new("git")
                 .args(&["-C", &source, "submodule", "init"])
                 .status()
-                .expect("Initializing submodule failed!");
+                .context("Initializing submodule failed!")?;
             Command::new("git")
                 .args(&["-C", &source, "submodule", "update", "--depth=1"])
                 .status()
-                .expect("Updating submodule failed!");
+                .context("Updating submodule failed!")?;
 
             let prefix = Config::new(&source).build().display().to_string();
 
@@ -93,7 +94,8 @@ fn setup_jpegxl() -> String {
                     println!("cargo:rustc-link-lib=stdc++");
                 }
             }
-            format!("{}/include", prefix)
+
+            Ok(format!("{}/include", prefix))
         }
     }
 }
