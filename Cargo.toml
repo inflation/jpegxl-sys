@@ -17,6 +17,7 @@ no-default-features = true
 
 [build-dependencies]
 bindgen = "0.56"
+cfg-if = "1.0.0"
 cmake = "0.1.45"
 
 [dev-dependencies]
