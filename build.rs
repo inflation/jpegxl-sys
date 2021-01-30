@@ -58,7 +58,7 @@ fn setup_jpegxl() -> Result<String> {
                 .args(&[
                     "clone",
                     "--depth=1",
-                    "--branch=v0.2",
+                    "--branch=v0.3",
                     "https://gitlab.com/wg1/jpeg-xl",
                     &source,
                 ])
