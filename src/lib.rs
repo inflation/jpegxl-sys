@@ -40,12 +40,14 @@ trait_impl!(NewUninit, [JxlBasicInfo, JxlPixelFormat]);
 /// Convenient function to just return a block of memory.
 /// You need to assign `basic_info.assume_init()` to use as a Rust struct after passing as a pointer.
 /// # Examples:
-/// ```ignore
+/// ```
 /// # use jpegxl_sys::*;
+/// # unsafe {
 /// # let decoder = JxlDecoderCreate(std::ptr::null());
 /// let mut basic_info = JxlBasicInfo::new_uninit();
 /// JxlDecoderGetBasicInfo(decoder, basic_info.as_mut_ptr());
 /// let basic_info = basic_info.assume_init();
+/// }
 /// ```
 pub trait NewUninit {
     #[inline]
@@ -85,7 +87,7 @@ mod test {
     #[test]
     fn test_bindings_version() {
         unsafe {
-            assert_eq!(JxlDecoderVersion(), 2000);
+            assert_eq!(JxlDecoderVersion(), 3000);
         }
     }
 
@@ -103,8 +105,8 @@ mod test {
         let signature = JxlSignatureCheck(sample.as_ptr(), 2);
         assert_eq!(signature, JxlSignature_JXL_SIG_CODESTREAM, "Signature");
 
-        let next_in = &mut sample.as_ptr();
-        let mut avail_in = sample.len() as u64;
+        let next_in = sample.as_ptr();
+        let avail_in = sample.len() as u64;
 
         let pixel_format = JxlPixelFormat {
             num_channels: 3,
@@ -118,8 +120,11 @@ mod test {
         let mut xsize = 0;
         let mut ysize = 0;
 
+        status = JxlDecoderSetInput(decoder, next_in, avail_in);
+        jxl_dec_assert!(status, "Set input");
+
         loop {
-            status = JxlDecoderProcessInput(decoder, next_in, &mut avail_in);
+            status = JxlDecoderProcessInput(decoder);
 
             match status {
                 JxlDecoderStatus_JXL_DEC_ERROR => panic!("Decoder error!"),
