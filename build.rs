@@ -1,9 +1,12 @@
-use anyhow::{Context, Result};
-use bindgen::builder;
 use std::env;
 use std::path::PathBuf;
 
+use bindgen::builder;
+use color_eyre::{eyre::Context, Result};
+
 fn main() -> Result<()> {
+    color_eyre::install()?;
+
     println!("cargo:rerun-if-changed=wrapper.h");
 
     #[cfg(not(feature = "without-threads"))]
@@ -58,7 +61,7 @@ fn setup_jpegxl() -> Result<String> {
                 .args(&[
                     "clone",
                     "--depth=1",
-                    "--branch=v0.3",
+                    "--branch=v0.3.1",
                     "https://gitlab.com/wg1/jpeg-xl",
                     &source,
                 ])

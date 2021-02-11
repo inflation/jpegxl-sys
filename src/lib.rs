@@ -35,7 +35,7 @@ macro_rules! trait_impl {
     };
 }
 
-trait_impl!(NewUninit, [JxlBasicInfo, JxlPixelFormat]);
+trait_impl!(NewUninit, [JxlBasicInfo, JxlPixelFormat, JxlColorEncoding]);
 
 /// Convenient function to just return a block of memory.
 /// You need to assign `basic_info.assume_init()` to use as a Rust struct after passing as a pointer.
@@ -87,7 +87,7 @@ mod test {
     #[test]
     fn test_bindings_version() {
         unsafe {
-            assert_eq!(JxlDecoderVersion(), 3000);
+            assert_eq!(JxlDecoderVersion(), 3001);
         }
     }
 
@@ -207,7 +207,7 @@ mod test {
         }
     }
 
-    fn encode(pixels: &[u8], xsize: usize, ysize: usize) -> Vec<u8> {
+    fn encode(pixels: &[u8], xsize: u32, ysize: u32) -> Vec<u8> {
         unsafe {
             let enc = JxlEncoderCreate(std::ptr::null());
 
@@ -220,14 +220,27 @@ mod test {
                 JxlEncoderSetParallelRunner(enc, Some(JxlThreadParallelRunner), runner);
             jxl_enc_assert!(status, "Set Parallel Runner");
 
+            let mut basic_info = JxlBasicInfo::new_uninit().assume_init();
+            basic_info.xsize = xsize;
+            basic_info.ysize = ysize;
+            basic_info.bits_per_sample = 8;
+            basic_info.exponent_bits_per_sample = 0;
+            basic_info.alpha_exponent_bits = 0;
+            basic_info.alpha_bits = 0;
+            basic_info.uses_original_profile = JXL_FALSE as i32;
+            status = JxlEncoderSetBasicInfo(enc, &basic_info);
+            jxl_enc_assert!(status, "Set Basic Info");
+
             let pixel_format = JxlPixelFormat {
                 num_channels: 3,
                 data_type: JxlDataType_JXL_TYPE_UINT8,
                 endianness: JxlEndianness_JXL_NATIVE_ENDIAN,
                 align: 0,
             };
-            status = JxlEncoderSetDimensions(enc, xsize as u64, ysize as u64);
-            jxl_enc_assert!(status, "Set Dimension");
+            let mut color_encoding = JxlColorEncoding::new_uninit().assume_init();
+            JxlColorEncodingSetToSRGB(&mut color_encoding, JXL_FALSE as i32);
+            status = JxlEncoderSetColorEncoding(enc, &color_encoding);
+            jxl_enc_assert!(status, "Set Color Encoding");
 
             status = JxlEncoderAddImageFrame(
                 JxlEncoderOptionsCreate(enc, std::ptr::null()),
@@ -276,8 +289,8 @@ mod test {
 
             let output = encode(
                 image_buffer.as_raw(),
-                image_buffer.width() as usize,
-                image_buffer.height() as usize,
+                image_buffer.width(),
+                image_buffer.height(),
             );
 
             unsafe {
