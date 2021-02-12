@@ -42,13 +42,14 @@ fn setup_jpegxl() -> Result<String> {
         if #[cfg(feature = "docsrs")] {
             Ok(String::from("include"))
         } else if #[cfg(feature = "without-build")] {
-            let lib_path = env::var("DEP_JXL_LIB").context("Library path is not set!")?;
             println!("cargo:rustc-link-lib=jxl");
 
             #[cfg(not(feature = "without-threads"))]
             println!("cargo:rustc-link-lib=jxl_threads");
 
-            println!("cargo:rustc-link-search=native={}", lib_path);
+            env::var("DEP_JXL_LIB").map(|l| {
+                println!("cargo:rustc-link-search=native={}", l);
+            }).ok();
 
             Ok(env::var("DEP_JXL_INCLUDE").unwrap_or_else(|_| "include".to_owned()))
         } else {
