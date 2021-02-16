@@ -7,7 +7,7 @@ license = "GPL-3.0-or-later"
 name = "jpegxl-sys"
 readme = "README.md"
 repository = "https://github.com/inflation/jpegxl-sys"
-version = "0.3.2"
+version = "0.3.3-alpha.0"
 
 [package.metadata.docs.rs]
 features = ["docsrs"]
