@@ -1,5 +1,4 @@
-use std::env;
-use std::path::PathBuf;
+use std::{env, path::PathBuf};
 
 use bindgen::builder;
 
@@ -69,19 +68,44 @@ fn build() -> Result<String, Box<dyn std::error::Error>> {
             "clone",
             "--depth=1",
             "--branch=v0.3.3",
-            "https://gitlab.com/wg1/jpeg-xl",
+            "https://gitlab.com/wg1/jpeg-xl.git",
             &source,
         ])
         .status()
         .expect("Fetching source code failed!");
-    Command::new("git")
+    assert!(Command::new("git")
         .args(&["-C", &source, "submodule", "init"])
         .status()
-        .expect("Initializing submodule failed!");
-    Command::new("git")
+        .expect("Initializing submodule failed!")
+        .success());
+    assert!(Command::new("git")
         .args(&["-C", &source, "submodule", "update", "--depth=1"])
         .status()
-        .expect("Updating submodule failed!");
+        .expect("Updating submodule failed!")
+        .success());
+
+    // Disable binary tools
+    assert!(Command::new("sed")
+        .args(&[
+            "-i.bak",
+            "61,118s/^/#/",
+            &format!("{}/tools/CMakeLists.txt", &source)
+        ])
+        .status()
+        .expect("Disable binary failed!")
+        .success());
+
+    // macOS doesn't support `-static`, this comment out the flag
+    #[cfg(target_os = "macos")]
+    assert!(Command::new("sed")
+        .args(&[
+            "-i.bak",
+            "152,153s/^/#/",
+            &format!("{}/CMakeLists.txt", &source),
+        ])
+        .status()
+        .expect("Edit CMakeLists failed")
+        .success());
 
     let prefix = Config::new(&source)
         .define("BUILD_GMOCK", "OFF")
@@ -89,6 +113,8 @@ fn build() -> Result<String, Box<dyn std::error::Error>> {
         .define("INSTALL_GTEST", "OFF")
         .define("JPEGXL_ENABLE_BENCHMARK", "OFF")
         .define("JPEGXL_ENABLE_EXAMPLES", "OFF")
+        .define("JPEGXL_ENABLE_OPENEXR", "OFF")
+        .define("JPEGXL_STATIC", "ON")
         .build()
         .display()
         .to_string();
@@ -106,6 +132,13 @@ fn build() -> Result<String, Box<dyn std::error::Error>> {
     println!("cargo:rustc-link-lib=static=skcms");
     println!(
         "cargo:rustc-link-search=native={}/build/third_party",
+        prefix
+    );
+
+    println!("cargo:rustc-link-lib=static=brotlicommon-static");
+    println!("cargo:rustc-link-lib=static=brotlienc-static");
+    println!(
+        "cargo:rustc-link-search=native={}/build/third_party/brotli",
         prefix
     );
 
