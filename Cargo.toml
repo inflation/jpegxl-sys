@@ -19,7 +19,6 @@ no-default-features = true
 bindgen = "0.57.0"
 cfg-if = "1.0.0"
 cmake = "0.1.45"
-color-eyre = "0.5.10"
 
 [dev-dependencies]
 image = "0.23.12"

@@ -2,11 +2,8 @@ use std::env;
 use std::path::PathBuf;
 
 use bindgen::builder;
-use color_eyre::{eyre::Context, Result};
 
-fn main() -> Result<()> {
-    color_eyre::install()?;
-
+fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("cargo:rerun-if-changed=wrapper.h");
 
     #[cfg(not(feature = "without-threads"))]
@@ -34,10 +31,12 @@ fn main() -> Result<()> {
         .expect("Unable to generate bindings!");
     bindings
         .write_to_file(out_path.join("bindings.rs"))
-        .context("Couldn't write bindings!")
+        .expect("Couldn't write bindings!");
+
+    Ok(())
 }
 
-fn setup_jpegxl() -> Result<String> {
+fn setup_jpegxl() -> Result<String, Box<dyn std::error::Error>> {
     cfg_if::cfg_if! {
         if #[cfg(feature = "docsrs")] {
             Ok(String::from("include"))
@@ -53,58 +52,71 @@ fn setup_jpegxl() -> Result<String> {
 
             Ok(env::var("DEP_JXL_INCLUDE").unwrap_or_else(|_| "include".to_owned()))
         } else {
-            use cmake::Config;
-            use std::process::Command;
-
-            let source = format!("{}/jpeg-xl", env::var("OUT_DIR")?);
-
-            Command::new("git")
-                .args(&[
-                    "clone",
-                    "--depth=1",
-                    "--branch=v0.3.2",
-                    "https://gitlab.com/wg1/jpeg-xl",
-                    &source,
-                ])
-                .status()
-                .context("Fetching source code failed!")?;
-            Command::new("git")
-                .args(&["-C", &source, "submodule", "init"])
-                .status()
-                .context("Initializing submodule failed!")?;
-            Command::new("git")
-                .args(&["-C", &source, "submodule", "update", "--depth=1"])
-                .status()
-                .context("Updating submodule failed!")?;
-
-            let prefix = Config::new(&source).build().display().to_string();
-
-            let lib_path = format!("{}/lib", prefix);
-
-            println!("cargo:rustc-link-lib=static=jxl");
-
-            #[cfg(not(feature = "without-threads"))]
-            println!("cargo:rustc-link-lib=static=jxl_threads");
-
-            println!("cargo:rustc-link-lib=static=hwy");
-            println!("cargo:rustc-link-search=native={}", lib_path);
-
-            println!("cargo:rustc-link-lib=static=skcms");
-            println!(
-                "cargo:rustc-link-search=native={}/build/third_party",
-                prefix
-            );
-
-            #[cfg(not(feature = "without-threads"))]
-            cfg_if::cfg_if! {
-                if #[cfg(any(target_os = "macos", target_os = "ios"))] {
-                    println!("cargo:rustc-link-lib=c++");
-                } else {
-                    println!("cargo:rustc-link-lib=stdc++");
-                }
-            }
-
-            Ok(format!("{}/include", prefix))
+            build()
         }
     }
+}
+
+#[cfg(not(feature = "without-build"))]
+fn build() -> Result<String, Box<dyn std::error::Error>> {
+    use cmake::Config;
+    use std::process::Command;
+
+    let source = format!("{}/jpeg-xl", env::var("OUT_DIR")?);
+
+    Command::new("git")
+        .args(&[
+            "clone",
+            "--depth=1",
+            "--branch=v0.3.3",
+            "https://gitlab.com/wg1/jpeg-xl",
+            &source,
+        ])
+        .status()
+        .expect("Fetching source code failed!");
+    Command::new("git")
+        .args(&["-C", &source, "submodule", "init"])
+        .status()
+        .expect("Initializing submodule failed!");
+    Command::new("git")
+        .args(&["-C", &source, "submodule", "update", "--depth=1"])
+        .status()
+        .expect("Updating submodule failed!");
+
+    let prefix = Config::new(&source)
+        .define("BUILD_GMOCK", "OFF")
+        .define("BUILD_TESTING", "OFF")
+        .define("INSTALL_GTEST", "OFF")
+        .define("JPEGXL_ENABLE_BENCHMARK", "OFF")
+        .define("JPEGXL_ENABLE_EXAMPLES", "OFF")
+        .build()
+        .display()
+        .to_string();
+
+    let lib_path = format!("{}/lib", prefix);
+
+    println!("cargo:rustc-link-lib=static=jxl");
+
+    #[cfg(not(feature = "without-threads"))]
+    println!("cargo:rustc-link-lib=static=jxl_threads");
+
+    println!("cargo:rustc-link-lib=static=hwy");
+    println!("cargo:rustc-link-search=native={}", lib_path);
+
+    println!("cargo:rustc-link-lib=static=skcms");
+    println!(
+        "cargo:rustc-link-search=native={}/build/third_party",
+        prefix
+    );
+
+    #[cfg(not(feature = "without-threads"))]
+    cfg_if::cfg_if! {
+        if #[cfg(any(target_os = "macos", target_os = "ios"))] {
+            println!("cargo:rustc-link-lib=c++");
+        } else {
+            println!("cargo:rustc-link-lib=stdc++");
+        }
+    }
+
+    Ok(format!("{}/include", prefix))
 }
