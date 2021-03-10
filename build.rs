@@ -1,4 +1,9 @@
-use std::{env, path::PathBuf};
+use std::{
+    env,
+    io::{Error, ErrorKind},
+    path::{Path, PathBuf},
+    process::Output,
+};
 
 use bindgen::builder;
 
@@ -27,10 +32,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .blacklist_function("qfcvt_r")
         .parse_callbacks(Box::new(bindgen::CargoCallbacks))
         .generate()
-        .expect("Unable to generate bindings!");
-    bindings
-        .write_to_file(out_path.join("bindings.rs"))
-        .expect("Couldn't write bindings!");
+        .map_err(|_| "Unable to generate bindings!")?;
+    bindings.write_to_file(out_path.join("bindings.rs"))?;
 
     Ok(())
 }
@@ -39,7 +42,7 @@ fn setup_jpegxl() -> Result<String, Box<dyn std::error::Error>> {
     cfg_if::cfg_if! {
         if #[cfg(feature = "docsrs")] {
             Ok(String::from("include"))
-        } else if #[cfg(feature = "without-build")] {
+        } else if #[cfg(feature = "system-jpegxl")] {
             println!("cargo:rustc-link-lib=jxl");
 
             #[cfg(not(feature = "without-threads"))]
@@ -56,56 +59,73 @@ fn setup_jpegxl() -> Result<String, Box<dyn std::error::Error>> {
     }
 }
 
-#[cfg(not(feature = "without-build"))]
+#[allow(dead_code)]
+fn check_status(msg: &'static str) -> impl Fn(Output) -> Result<(), Error> {
+    move |e| {
+        e.status.success().then(|| ()).ok_or_else(|| {
+            Error::new(
+                ErrorKind::Other,
+                format!("{}, stderr: {}", msg, String::from_utf8_lossy(&e.stderr)),
+            )
+        })
+    }
+}
+
+#[allow(dead_code)]
 fn build() -> Result<String, Box<dyn std::error::Error>> {
     use cmake::Config;
     use std::process::Command;
 
     let source = format!("{}/jpeg-xl", env::var("OUT_DIR")?);
 
+    if Path::new(&source).exists() {
+        Command::new("git")
+            .args(&["-C", &source, "checkout", "v0.3.3"])
+            .output()
+            .and_then(check_status("Failed to checkout v0.3.3!"))?;
+    } else {
+        Command::new("git")
+            .args(&[
+                "clone",
+                "--depth=1",
+                "--branch=v0.3.3",
+                "https://gitlab.com/wg1/jpeg-xl.git",
+                &source,
+            ])
+            .output()
+            .and_then(check_status("Failed to clone jpeg-xl!"))?;
+    }
     Command::new("git")
-        .args(&[
-            "clone",
-            "--depth=1",
-            "--branch=v0.3.3",
-            "https://gitlab.com/wg1/jpeg-xl.git",
-            &source,
-        ])
-        .status()
-        .expect("Fetching source code failed!");
-    assert!(Command::new("git")
         .args(&["-C", &source, "submodule", "init"])
-        .status()
-        .expect("Initializing submodule failed!")
-        .success());
-    assert!(Command::new("git")
+        .output()
+        .and_then(check_status("Failed to init submodule!"))?;
+    Command::new("git")
         .args(&["-C", &source, "submodule", "update", "--depth=1"])
-        .status()
-        .expect("Updating submodule failed!")
-        .success());
+        .output()
+        .and_then(check_status("Failed to update submodule!"))?;
 
     // Disable binary tools
-    assert!(Command::new("sed")
+    Command::new("sed")
         .args(&[
             "-i.bak",
             "61,118s/^/#/",
-            &format!("{}/tools/CMakeLists.txt", &source)
+            &format!("{}/tools/CMakeLists.txt", &source),
         ])
-        .status()
-        .expect("Disable binary failed!")
-        .success());
+        .output()
+        .and_then(check_status("Disable binary failed!"))?;
 
     // macOS doesn't support `-static`, this comment out the flag
     #[cfg(target_os = "macos")]
-    assert!(Command::new("sed")
+    Command::new("sed")
         .args(&[
             "-i.bak",
             "152,153s/^/#/",
             &format!("{}/CMakeLists.txt", &source),
         ])
-        .status()
-        .expect("Edit CMakeLists failed")
-        .success());
+        .output()
+        .and_then(check_status("Edit CMakeLists failed"))?;
+
+    env::set_var("CMAKE_BUILD_PARALLEL_LEVEL", format!("{}", num_cpus::get()));
 
     let prefix = Config::new(&source)
         .define("BUILD_GMOCK", "OFF")
