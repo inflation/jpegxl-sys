@@ -1,34 +1,14 @@
-on: [push, pull_request]
-
 name: CI
 
-jobs:
-  check:
-    name: Check
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-      - uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          toolchain: stable
-          override: true
-      - uses: actions-rs/cargo@v1
-        with:
-          command: fetch
-      - uses: actions/cache@v2
-        with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            target
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-      - uses: actions-rs/cargo@v1
-        with:
-          command: check
+on: push
 
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: 1
+
+jobs:
   test:
-    name: Test Suite
+    name: Unit Tests
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
@@ -43,13 +23,71 @@ jobs:
       - uses: actions/cache@v2
         with:
           path: |
-            ~/.cargo/registry
-            ~/.cargo/git
             target
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-      - uses: actions-rs/cargo@v1
+      - name: Test
+        uses: actions-rs/cargo@v1
         with:
           command: test
+
+  test-windows:
+    name: Unit Tests (Windows)
+    runs-on: windows-latest
+    steps:
+      - uses: msys2/setup-msys2@v2
+        with:
+          install: >-
+            mingw-w64-x86_64-toolchain
+            mingw-w64-x86_64-clang
+      - name: Set LIBCLANG_PATH
+        run: echo "LIBCLANG_PATH=$((gcm clang).source -replace "clang.exe")" >> $env:GITHUB_ENV
+      - uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          override: true
+      - uses: actions-rs/cargo@v1
+        with:
+          command: fetch
+      - uses: actions/cache@v2
+        with:
+          path: |
+            target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+      - name: Test
+        uses: actions-rs/cargo@v1
+        with:
+          command: test
+        env:
+          CC: D:\a\_temp\msys\msys64\mingw64\bin\gcc.exe
+          CXX: D:\a\_temp\msys\msys64\mingw64\bin\g++.exe
+          LIBCLANG_PATH: D:\a\_temp\msys\msys64\mingw64\lib
+
+  clippy:
+    name: Clippy
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          components: clippy
+          override: true
+      - uses: actions-rs/cargo@v1
+        with:
+          command: fetch
+      - uses: actions/cache@v2
+        with:
+          path: |
+            target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+      - name: Clippy
+        uses: actions-rs/clippy-check@v1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          args: -- -D warnings
 
   fmt:
     name: Rustfmt
@@ -61,34 +99,8 @@ jobs:
           profile: minimal
           toolchain: stable
           override: true
-      - run: rustup component add rustfmt
+          components: rustfmt
       - uses: actions-rs/cargo@v1
         with:
           command: fmt
           args: --all -- --check
-
-  clippy:
-    name: Clippy
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-      - uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          toolchain: stable
-          override: true
-      - uses: actions-rs/cargo@v1
-        with:
-          command: fetch
-      - uses: actions/cache@v2
-        with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            target
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-      - run: rustup component add clippy
-      - uses: actions-rs/cargo@v1
-        with:
-          command: clippy
-          args: -- -D warnings

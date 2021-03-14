@@ -127,17 +127,20 @@ fn build() -> Result<String, Box<dyn std::error::Error>> {
 
     env::set_var("CMAKE_BUILD_PARALLEL_LEVEL", format!("{}", num_cpus::get()));
 
-    let prefix = Config::new(&source)
+    let mut config = Config::new(&source);
+    config
         .define("BUILD_GMOCK", "OFF")
         .define("BUILD_TESTING", "OFF")
         .define("INSTALL_GTEST", "OFF")
         .define("JPEGXL_ENABLE_BENCHMARK", "OFF")
         .define("JPEGXL_ENABLE_EXAMPLES", "OFF")
         .define("JPEGXL_ENABLE_OPENEXR", "OFF")
-        .define("JPEGXL_STATIC", "ON")
-        .build()
-        .display()
-        .to_string();
+        .define("JPEGXL_STATIC", "ON");
+
+    #[cfg(target_os = "windows")]
+    config.target("x86_64-pc-windows-gnu");
+
+    let prefix = config.build().display().to_string();
 
     let lib_path = format!("{}/lib", prefix);
 
