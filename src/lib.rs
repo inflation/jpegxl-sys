@@ -15,13 +15,13 @@ You should have received a copy of the GNU General Public License
 along with jpegxl-sys.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-#![allow(non_upper_case_globals)]
-#![allow(non_camel_case_types)]
-#![allow(non_snake_case)]
 #![allow(clippy::redundant_static_lifetimes)]
 #![allow(clippy::too_many_arguments)]
 
-include!(concat!(env!("OUT_DIR"), "/bindings.rs"));
+pub mod bindings;
+
+// include!(concat!(env!("OUT_DIR"), "/bindings.rs"));
+pub use bindings::*;
 
 macro_rules! trait_impl {
     ($x:ty, [$($struct_:ident ),*]) => {
@@ -59,6 +59,7 @@ pub trait NewUninit {
 #[cfg(test)]
 mod test {
     use super::*;
+    use crate::thread_runner::*;
     use std::ptr;
 
     use image::io::Reader as ImageReader;
@@ -66,16 +67,16 @@ mod test {
 
     macro_rules! jxl_dec_assert {
         ($val:expr, $desc:expr) => {
-            if $val != JxlDecoderStatus_JXL_DEC_SUCCESS {
-                panic!("Decoder error by: {}, in {}", $val, $desc)
+            if $val != JxlDecoderStatus::Success as _ {
+                panic!("Decoder error by: {:#?}, in {}", $val, $desc)
             }
         };
     }
 
     macro_rules! jxl_enc_assert {
         ($val:expr, $desc:expr) => {
-            if $val != JxlEncoderStatus_JXL_ENC_SUCCESS {
-                panic!("Encoder error by: {}, in {}", $val, $desc)
+            if $val != JxlEncoderStatus::Success as _ {
+                panic!("Encoder error by: {:#?}, in {}", $val, $desc)
             }
         };
     }
@@ -88,30 +89,30 @@ mod test {
     }
 
     unsafe fn decode(decoder: *mut JxlDecoder, sample: &[u8]) {
-        let mut status: u32;
+        let mut status;
 
         // Stop after getting the basic info and decoding the image
         status = JxlDecoderSubscribeEvents(
             decoder,
-            (JxlDecoderStatus_JXL_DEC_BASIC_INFO | JxlDecoderStatus_JXL_DEC_FULL_IMAGE) as i32,
+            JxlDecoderStatus::BasicInfo | JxlDecoderStatus::FullImage,
         );
         jxl_dec_assert!(status, "Subscribe Events");
 
         // Read everything in memory
         let signature = JxlSignatureCheck(sample.as_ptr(), 2);
-        assert_eq!(signature, JxlSignature_JXL_SIG_CODESTREAM, "Signature");
+        assert_eq!(signature, JxlSignature::Codestream, "Signature");
 
         let next_in = sample.as_ptr();
-        let avail_in = sample.len() as u64;
+        let avail_in = sample.len();
 
         let pixel_format = JxlPixelFormat {
             num_channels: 3,
-            data_type: JxlDataType_JXL_TYPE_UINT8,
-            endianness: JxlEndianness_JXL_NATIVE_ENDIAN,
+            data_type: JxlDataType::Uint8,
+            endianness: JxlEndianness::Native,
             align: 0,
         };
 
-        let mut basic_info = JxlBasicInfo::new_uninit();
+        let mut basic_info = JxlBasicInfo::new_uninit().assume_init();
         let mut buffer: Vec<f32> = Vec::new();
         let mut xsize = 0;
         let mut ysize = 0;
@@ -119,20 +120,20 @@ mod test {
         status = JxlDecoderSetInput(decoder, next_in, avail_in);
         jxl_dec_assert!(status, "Set input");
 
+        use JxlDecoderStatus::*;
         loop {
             status = JxlDecoderProcessInput(decoder);
 
             match status {
-                JxlDecoderStatus_JXL_DEC_ERROR => panic!("Decoder error!"),
-                JxlDecoderStatus_JXL_DEC_NEED_MORE_INPUT => {
+                Error => panic!("Decoder error!"),
+                NeedMoreInput => {
                     panic!("Error, already provided all input")
                 }
 
                 // Get the basic info
-                JxlDecoderStatus_JXL_DEC_BASIC_INFO => {
-                    status = JxlDecoderGetBasicInfo(decoder, basic_info.as_mut_ptr());
+                BasicInfo => {
+                    status = JxlDecoderGetBasicInfo(decoder, &mut basic_info);
                     jxl_dec_assert!(status, "BasicInfo");
-                    let basic_info = basic_info.assume_init();
                     xsize = basic_info.xsize;
                     ysize = basic_info.ysize;
                     assert_eq!(basic_info.bits_per_sample, 8, "Bits per sample");
@@ -141,8 +142,8 @@ mod test {
                 }
 
                 // Get the output buffer
-                JxlDecoderStatus_JXL_DEC_NEED_IMAGE_OUT_BUFFER => {
-                    let mut size: u64 = 0;
+                NeedImageOutBuffer => {
+                    let mut size = 0;
                     status = JxlDecoderImageOutBufferSize(decoder, &pixel_format, &mut size);
                     jxl_dec_assert!(status, "BufferSize");
 
@@ -156,12 +157,12 @@ mod test {
                     jxl_dec_assert!(status, "SetBuffer");
                 }
 
-                JxlDecoderStatus_JXL_DEC_FULL_IMAGE => continue,
-                JxlDecoderStatus_JXL_DEC_SUCCESS => {
+                FullImage => continue,
+                Success => {
                     assert_eq!(buffer.len(), (xsize * ysize * 3) as usize);
                     return;
                 }
-                _ => panic!("Unknown decoder status: {}", status),
+                _ => panic!("Unknown decoder status: {:#?}", status),
             }
         }
     }
@@ -223,18 +224,19 @@ mod test {
             basic_info.exponent_bits_per_sample = 0;
             basic_info.alpha_exponent_bits = 0;
             basic_info.alpha_bits = 0;
-            basic_info.uses_original_profile = JXL_FALSE as i32;
+            basic_info.uses_original_profile = false as _;
+
             status = JxlEncoderSetBasicInfo(enc, &basic_info);
             jxl_enc_assert!(status, "Set Basic Info");
 
             let pixel_format = JxlPixelFormat {
                 num_channels: 3,
-                data_type: JxlDataType_JXL_TYPE_UINT8,
-                endianness: JxlEndianness_JXL_NATIVE_ENDIAN,
+                data_type: JxlDataType::Uint8,
+                endianness: JxlEndianness::Native,
                 align: 0,
             };
             let mut color_encoding = JxlColorEncoding::new_uninit().assume_init();
-            JxlColorEncodingSetToSRGB(&mut color_encoding, JXL_FALSE as i32);
+            JxlColorEncodingSetToSRGB(&mut color_encoding, false);
             status = JxlEncoderSetColorEncoding(enc, &color_encoding);
             jxl_enc_assert!(status, "Set Color Encoding");
 
@@ -242,7 +244,7 @@ mod test {
                 JxlEncoderOptionsCreate(enc, std::ptr::null()),
                 &pixel_format,
                 pixels.as_ptr() as *mut std::ffi::c_void,
-                pixels.len() as u64,
+                pixels.len(),
             );
             jxl_enc_assert!(status, "Add Image Frame");
 
@@ -252,13 +254,10 @@ mod test {
             let mut avail_out = CHUNK_SIZE;
 
             loop {
-                status = JxlEncoderProcessOutput(
-                    enc,
-                    &mut next_out as *mut *mut u8,
-                    &mut (avail_out as u64) as *mut u64,
-                );
+                status =
+                    JxlEncoderProcessOutput(enc, &mut next_out as *mut *mut u8, &mut avail_out);
 
-                if status != JxlEncoderStatus_JXL_ENC_NEED_MORE_OUTPUT {
+                if status != JxlEncoderStatus::NeedMoreOutput {
                     break;
                 }
 

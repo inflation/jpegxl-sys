@@ -1,47 +1,20 @@
 use std::{
     env,
     io::{Error, ErrorKind},
-    path::{Path, PathBuf},
+    path::PathBuf,
     process::Output,
 };
 
-use bindgen::builder;
-
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    println!("cargo:rerun-if-changed=wrapper.h");
-
-    #[cfg(not(feature = "without-threads"))]
-    println!("cargo:rerun-if-changed=wrapper-threads.h");
-
-    let include_dir = setup_jpegxl()?;
-    let out_path = PathBuf::from(env::var("OUT_DIR")?);
-    let header = if cfg!(not(feature = "without-threads")) {
-        "wrapper-threads.h"
-    } else {
-        "wrapper.h"
-    };
-
-    let bindings = builder()
-        .header(header)
-        .clang_arg(format!("-I{}", &include_dir))
-        .blacklist_function("strtold") // Returned long double becomes u128, which is not safe
-        .blacklist_function("qecvt")
-        .blacklist_function("qfcvt")
-        .blacklist_function("qgcvt")
-        .blacklist_function("qecvt_r")
-        .blacklist_function("qfcvt_r")
-        .parse_callbacks(Box::new(bindgen::CargoCallbacks))
-        .generate()
-        .map_err(|_| "Unable to generate bindings!")?;
-    bindings.write_to_file(out_path.join("bindings.rs"))?;
+    setup_jpegxl()?;
 
     Ok(())
 }
 
-fn setup_jpegxl() -> Result<String, Box<dyn std::error::Error>> {
+fn setup_jpegxl() -> Result<(), Box<dyn std::error::Error>> {
     cfg_if::cfg_if! {
         if #[cfg(feature = "docsrs")] {
-            Ok(String::from("include"))
+            Ok(())
         } else if #[cfg(feature = "system-jpegxl")] {
             println!("cargo:rustc-link-lib=jxl");
 
@@ -52,7 +25,7 @@ fn setup_jpegxl() -> Result<String, Box<dyn std::error::Error>> {
                 println!("cargo:rustc-link-search=native={}", l);
             }).ok();
 
-            Ok(env::var("DEP_JXL_INCLUDE").unwrap_or_else(|_| "include".to_owned()))
+            Ok(())
         } else {
             build()
         }
@@ -72,15 +45,16 @@ fn check_status(msg: &'static str) -> impl Fn(Output) -> Result<(), Error> {
 }
 
 #[allow(dead_code)]
-fn build() -> Result<String, Box<dyn std::error::Error>> {
+fn build() -> Result<(), Box<dyn std::error::Error>> {
     use cmake::Config;
     use std::process::Command;
 
-    let source = format!("{}/jpeg-xl", env::var("OUT_DIR")?);
+    let source: PathBuf = [&env::var("OUT_DIR")?, "jpeg-xl"].iter().collect();
+    let source_str = source.to_str().ok_or("Source path is invalid UTF-8")?;
 
-    if Path::new(&source).exists() {
+    if source.exists() {
         Command::new("git")
-            .args(&["-C", &source, "checkout", "v0.3.3"])
+            .args(&["-C", source_str, "checkout", "v0.3.3"])
             .output()
             .and_then(check_status("Failed to checkout v0.3.3!"))?;
     } else {
@@ -90,40 +64,44 @@ fn build() -> Result<String, Box<dyn std::error::Error>> {
                 "--depth=1",
                 "--branch=v0.3.3",
                 "https://gitlab.com/wg1/jpeg-xl.git",
-                &source,
+                source_str,
             ])
             .output()
             .and_then(check_status("Failed to clone jpeg-xl!"))?;
     }
     Command::new("git")
-        .args(&["-C", &source, "submodule", "init"])
+        .args(&["-C", source_str, "submodule", "init"])
         .output()
         .and_then(check_status("Failed to init submodule!"))?;
     Command::new("git")
-        .args(&["-C", &source, "submodule", "update", "--depth=1"])
+        .args(&["-C", source_str, "submodule", "update", "--depth=1"])
         .output()
         .and_then(check_status("Failed to update submodule!"))?;
+
+    // macOS(iOS) doesn't support `-static`, this comment out the flag
+    #[cfg(any(target_os = "macos", target_os = "ios"))]
+    Command::new("sed")
+        .args(&[
+            "-i.bak",
+            "152,153s/^/#/",
+            source.join("CMakeLists.txt").to_str().unwrap(),
+        ])
+        .output()
+        .and_then(check_status("Edit CMakeLists failed"))?;
 
     // Disable binary tools
     Command::new("sed")
         .args(&[
             "-i.bak",
             "61,118s/^/#/",
-            &format!("{}/tools/CMakeLists.txt", &source),
+            source
+                .join("tools")
+                .join("CMakeLists.txt")
+                .to_str()
+                .unwrap(),
         ])
         .output()
         .and_then(check_status("Disable binary failed!"))?;
-
-    // macOS doesn't support `-static`, this comment out the flag
-    #[cfg(target_os = "macos")]
-    Command::new("sed")
-        .args(&[
-            "-i.bak",
-            "152,153s/^/#/",
-            &format!("{}/CMakeLists.txt", &source),
-        ])
-        .output()
-        .and_then(check_status("Edit CMakeLists failed"))?;
 
     env::set_var("CMAKE_BUILD_PARALLEL_LEVEL", format!("{}", num_cpus::get()));
 
@@ -137,12 +115,7 @@ fn build() -> Result<String, Box<dyn std::error::Error>> {
         .define("JPEGXL_ENABLE_OPENEXR", "OFF")
         .define("JPEGXL_STATIC", "ON");
 
-    #[cfg(target_os = "windows")]
-    config.target("x86_64-pc-windows-gnu");
-
-    let prefix = config.build().display().to_string();
-
-    let lib_path = format!("{}/lib", prefix);
+    let mut prefix = config.build();
 
     println!("cargo:rustc-link-lib=static=jxl");
 
@@ -150,19 +123,21 @@ fn build() -> Result<String, Box<dyn std::error::Error>> {
     println!("cargo:rustc-link-lib=static=jxl_threads");
 
     println!("cargo:rustc-link-lib=static=hwy");
-    println!("cargo:rustc-link-search=native={}", lib_path);
-
-    println!("cargo:rustc-link-lib=static=skcms");
     println!(
-        "cargo:rustc-link-search=native={}/build/third_party",
-        prefix
+        "cargo:rustc-link-search=native={}",
+        prefix.join("lib").display()
     );
+
+    prefix.push("build");
+    prefix.push("third_party");
+    println!("cargo:rustc-link-lib=static=skcms");
+    println!("cargo:rustc-link-search=native={}", prefix.display());
 
     println!("cargo:rustc-link-lib=static=brotlicommon-static");
     println!("cargo:rustc-link-lib=static=brotlienc-static");
     println!(
-        "cargo:rustc-link-search=native={}/build/third_party/brotli",
-        prefix
+        "cargo:rustc-link-search=native={}",
+        prefix.join("brotli").display()
     );
 
     #[cfg(not(feature = "without-threads"))]
@@ -174,5 +149,5 @@ fn build() -> Result<String, Box<dyn std::error::Error>> {
         }
     }
 
-    Ok(format!("{}/include", prefix))
+    Ok(())
 }

@@ -30,40 +30,6 @@ jobs:
         with:
           command: test
 
-  test-windows:
-    name: Unit Tests (Windows)
-    runs-on: windows-latest
-    steps:
-      - uses: msys2/setup-msys2@v2
-        with:
-          install: >-
-            mingw-w64-x86_64-toolchain
-            mingw-w64-x86_64-clang
-      - name: Set LIBCLANG_PATH
-        run: echo "LIBCLANG_PATH=$((gcm clang).source -replace "clang.exe")" >> $env:GITHUB_ENV
-      - uses: actions/checkout@v2
-      - uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          toolchain: stable
-          override: true
-      - uses: actions-rs/cargo@v1
-        with:
-          command: fetch
-      - uses: actions/cache@v2
-        with:
-          path: |
-            target
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-      - name: Test
-        uses: actions-rs/cargo@v1
-        with:
-          command: test
-        env:
-          CC: D:\a\_temp\msys\msys64\mingw64\bin\gcc.exe
-          CXX: D:\a\_temp\msys\msys64\mingw64\bin\g++.exe
-          LIBCLANG_PATH: D:\a\_temp\msys\msys64\mingw64\lib
-
   clippy:
     name: Clippy
     runs-on: ubuntu-latest
