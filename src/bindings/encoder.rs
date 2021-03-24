@@ -98,6 +98,11 @@ extern "C" {
         lossless: bool,
     ) -> JxlEncoderStatus;
 
+    pub fn JxlEncoderOptionsSetDecodingSpeed(
+        options: *mut JxlEncoderOptions,
+        tier: i32,
+    ) -> JxlEncoderStatus;
+
     pub fn JxlEncoderOptionsSetEffort(
         options: *mut JxlEncoderOptions,
         effort: c_int,

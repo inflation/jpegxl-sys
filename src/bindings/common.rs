@@ -110,6 +110,7 @@ pub struct JxlInverseOpsinMatrix {
 }
 
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub enum JxlOrientation {
     Identity = 1,
     FlipHorizontal = 2,

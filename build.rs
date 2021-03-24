@@ -5,6 +5,8 @@ use std::{
     process::Output,
 };
 
+const VERSION: &str = "v0.3.5";
+
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     setup_jpegxl()?;
 
@@ -12,24 +14,24 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 }
 
 fn setup_jpegxl() -> Result<(), Box<dyn std::error::Error>> {
-    cfg_if::cfg_if! {
-        if #[cfg(feature = "docsrs")] {
-            Ok(())
-        } else if #[cfg(feature = "system-jpegxl")] {
-            println!("cargo:rustc-link-lib=jxl");
+    #[cfg(feature = "system-jxl")]
+    {
+        println!("cargo:rustc-link-lib=jxl");
 
-            #[cfg(not(feature = "without-threads"))]
-            println!("cargo:rustc-link-lib=jxl_threads");
+        #[cfg(feature = "threads")]
+        println!("cargo:rustc-link-lib=jxl_threads");
 
-            env::var("DEP_JXL_LIB").map(|l| {
+        env::var("DEP_JXL_LIB")
+            .map(|l| {
                 println!("cargo:rustc-link-search=native={}", l);
-            }).ok();
+            })
+            .ok();
 
-            Ok(())
-        } else {
-            build()
-        }
+        Ok(())
     }
+
+    #[cfg(not(feature = "system-jxl"))]
+    build()
 }
 
 #[allow(dead_code)]
@@ -54,15 +56,15 @@ fn build() -> Result<(), Box<dyn std::error::Error>> {
 
     if source.exists() {
         Command::new("git")
-            .args(&["-C", source_str, "checkout", "v0.3.3"])
+            .args(&["-C", source_str, "checkout", VERSION])
             .output()
-            .and_then(check_status("Failed to checkout v0.3.3!"))?;
+            .and_then(check_status("Failed to checkout the source code"))?;
     } else {
         Command::new("git")
             .args(&[
                 "clone",
                 "--depth=1",
-                "--branch=v0.3.3",
+                &format!("--branch={}", VERSION),
                 "https://gitlab.com/wg1/jpeg-xl.git",
                 source_str,
             ])
@@ -119,7 +121,7 @@ fn build() -> Result<(), Box<dyn std::error::Error>> {
 
     println!("cargo:rustc-link-lib=static=jxl");
 
-    #[cfg(not(feature = "without-threads"))]
+    #[cfg(feature = "threads")]
     println!("cargo:rustc-link-lib=static=jxl_threads");
 
     println!("cargo:rustc-link-lib=static=hwy");
@@ -134,19 +136,19 @@ fn build() -> Result<(), Box<dyn std::error::Error>> {
     println!("cargo:rustc-link-search=native={}", prefix.display());
 
     println!("cargo:rustc-link-lib=static=brotlicommon-static");
+    println!("cargo:rustc-link-lib=static=brotlidec-static");
     println!("cargo:rustc-link-lib=static=brotlienc-static");
     println!(
         "cargo:rustc-link-search=native={}",
         prefix.join("brotli").display()
     );
 
-    #[cfg(not(feature = "without-threads"))]
-    cfg_if::cfg_if! {
-        if #[cfg(any(target_os = "macos", target_os = "ios"))] {
-            println!("cargo:rustc-link-lib=c++");
-        } else {
-            println!("cargo:rustc-link-lib=stdc++");
-        }
+    #[cfg(feature = "threads")]
+    {
+        #[cfg(target_os = "linux")]
+        println!("cargo:rustc-link-lib=stdc++");
+        #[cfg(any(target_os = "macos", target_os = "ios"))]
+        println!("cargo:rustc-link-lib=c++");
     }
 
     Ok(())
