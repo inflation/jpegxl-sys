@@ -4,13 +4,13 @@ categories = ["external-ffi-bindings", "encoding", "multimedia::images"]
 description = "Rust wrapper for JPEG XL reference implementation"
 edition = "2018"
 exclude = ["test/"]
-keywords = ["image-format", "jpeg-xl", "jxl"]
+keywords = ["jpeg-xl", "jxl"]
 license = "GPL-3.0-or-later"
 links = "jxl"
 name = "jpegxl-sys"
 readme = "README.md"
 repository = "https://github.com/inflation/jpegxl-sys"
-version = "0.3.5-alpha.0"
+version = "0.3.7"
 
 [package.metadata.docs.rs]
 features = ["system-jxl"]

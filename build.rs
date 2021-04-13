@@ -5,7 +5,7 @@ use std::{
     process::Output,
 };
 
-const VERSION: &str = "v0.3.5";
+const VERSION: &str = "v0.3.7";
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     setup_jpegxl()?;
@@ -92,6 +92,7 @@ fn build() -> Result<(), Box<dyn std::error::Error>> {
         .and_then(check_status("Edit CMakeLists failed"))?;
 
     // Disable binary tools
+    #[cfg(not(target_os = "windows"))]
     Command::new("sed")
         .args(&[
             "-i.bak",
@@ -145,10 +146,10 @@ fn build() -> Result<(), Box<dyn std::error::Error>> {
 
     #[cfg(feature = "threads")]
     {
-        #[cfg(target_os = "linux")]
-        println!("cargo:rustc-link-lib=stdc++");
         #[cfg(any(target_os = "macos", target_os = "ios"))]
         println!("cargo:rustc-link-lib=c++");
+        #[cfg(not(any(target_os = "macos", target_os = "ios")))]
+        println!("cargo:rustc-link-lib=stdc++");
     }
 
     Ok(())
