@@ -137,9 +137,8 @@ mod test {
                     jxl_dec_assert!(status, "BasicInfo");
                     xsize = basic_info.xsize;
                     ysize = basic_info.ysize;
-                    assert_eq!(basic_info.bits_per_sample, 8, "Bits per sample");
-                    assert_eq!(basic_info.xsize, 2122, "Width");
-                    assert_eq!(basic_info.ysize, 1433, "Height");
+                    assert_eq!(basic_info.xsize, 40, "Width");
+                    assert_eq!(basic_info.ysize, 50, "Height");
                 }
 
                 // Get the output buffer
@@ -194,7 +193,7 @@ mod test {
             assert!(!dec.is_null());
 
             // Parallel multithread runner
-            let status = JxlDecoderSetParallelRunner(dec, Some(JxlThreadParallelRunner), runner);
+            let status = JxlDecoderSetParallelRunner(dec, JxlThreadParallelRunner, runner);
             jxl_dec_assert!(status, "Set Parallel Runner");
 
             let sample = std::fs::read("test/sample.jxl").unwrap();
@@ -214,8 +213,7 @@ mod test {
                 JxlThreadParallelRunnerDefaultNumWorkerThreads(),
             );
 
-            let mut status =
-                JxlEncoderSetParallelRunner(enc, Some(JxlThreadParallelRunner), runner);
+            let mut status = JxlEncoderSetParallelRunner(enc, JxlThreadParallelRunner, runner);
             jxl_enc_assert!(status, "Set Parallel Runner");
 
             let mut basic_info = JxlBasicInfo::new_uninit().assume_init();
@@ -298,8 +296,7 @@ mod test {
                 let dec = JxlDecoderCreate(ptr::null()); // Default memory manager
                 assert!(!dec.is_null());
 
-                let status =
-                    JxlDecoderSetParallelRunner(dec, Some(JxlThreadParallelRunner), runner);
+                let status = JxlDecoderSetParallelRunner(dec, JxlThreadParallelRunner, runner);
                 jxl_dec_assert!(status, "Set Parallel Runner");
 
                 decode(dec, &output);
