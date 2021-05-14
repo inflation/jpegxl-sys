@@ -45,6 +45,7 @@ pub struct JxlPixelFormat {
 }
 
 #[repr(C)]
+#[derive(Clone)]
 pub enum JxlColorSpace {
     Rgb = 0,
     Gray,
@@ -53,6 +54,7 @@ pub enum JxlColorSpace {
 }
 
 #[repr(C)]
+#[derive(Clone)]
 pub enum JxlWhitePoint {
     D65 = 1,
     Custom = 2,
@@ -61,6 +63,7 @@ pub enum JxlWhitePoint {
 }
 
 #[repr(C)]
+#[derive(Clone)]
 pub enum JxlPrimaries {
     SRgb = 1,
     Custom = 2,
@@ -69,6 +72,7 @@ pub enum JxlPrimaries {
 }
 
 #[repr(C)]
+#[derive(Clone)]
 pub enum JxlTransferFunction {
     Rec709 = 1,
     Unknown = 2,
@@ -81,6 +85,7 @@ pub enum JxlTransferFunction {
 }
 
 #[repr(C)]
+#[derive(Clone)]
 pub enum JxlRenderingIntent {
     Perceptual = 0,
     Relative,
@@ -89,6 +94,7 @@ pub enum JxlRenderingIntent {
 }
 
 #[repr(C)]
+#[derive(Clone)]
 pub struct JxlColorEncoding {
     pub color_space: JxlColorSpace,
     pub white_point: JxlWhitePoint,
