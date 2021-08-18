@@ -120,10 +120,17 @@ fn build() -> Result<(), Box<dyn std::error::Error>> {
 
     let mut prefix = config.build();
 
+    // The Windows versions of the static libs have a different name.
+    // See: https://gitlab.com/wg1/jpeg-xl/-/blob/v0.3.7/lib/jxl.cmake#L447-450
+    #[cfg(not(target_os = "windows"))]
     println!("cargo:rustc-link-lib=static=jxl");
+    #[cfg(target_os = "windows")]
+    println!("cargo:rustc-link-lib=static=jxl-static");
 
-    #[cfg(feature = "threads")]
+    #[cfg(all(feature = "threads", not(target_os = "windows")))]
     println!("cargo:rustc-link-lib=static=jxl_threads");
+    #[cfg(all(feature = "threads", target_os = "windows"))]
+    println!("cargo:rustc-link-lib=static=jxl_threads-static");
 
     println!("cargo:rustc-link-lib=static=hwy");
     println!(
