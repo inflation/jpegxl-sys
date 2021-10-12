@@ -61,12 +61,23 @@ macro_rules! jxl_dec_events {
     };
 }
 
+pub type JxlImageOutCallback = extern "C" fn(
+    opaque: *mut c_void,
+    x: usize,
+    y: usize,
+    num_pixels: usize,
+    pixels: *const c_void,
+);
+
 extern "C" {
     pub fn JxlSignatureCheck(buf: *const u8, len: usize) -> JxlSignature;
     pub fn JxlDecoderCreate(memory_manager: *const JxlMemoryManager) -> *mut JxlDecoder;
     pub fn JxlDecoderReset(dec: *mut JxlDecoder);
     pub fn JxlDecoderDestroy(dec: *mut JxlDecoder);
     pub fn JxlDecoderVersion() -> u32;
+    pub fn JxlDecoderRewind(dec: *mut JxlDecoder);
+    pub fn JxlDecoderSkipFrames(dec: *mut JxlDecoder, amount: usize);
+
     pub fn JxlDecoderDefaultPixelFormat(
         dec: *const JxlDecoder,
         format: *mut JxlPixelFormat,
@@ -140,6 +151,11 @@ extern "C" {
         size: usize,
     ) -> JxlDecoderStatus;
 
+    pub fn JxlDecoderSetPreferredColorProfile(
+        dec: *mut JxlDecoder,
+        color_encoding: *const JxlColorEncoding,
+    ) -> JxlDecoderStatus;
+
     pub fn JxlDecoderPreviewOutBufferSize(
         dec: *const JxlDecoder,
         format: *const JxlPixelFormat,
@@ -164,23 +180,54 @@ extern "C" {
         size: usize,
     ) -> JxlDecoderStatus;
 
-    pub fn JxlDecoderDCOutBufferSize(
+    // Deprecated
+    // pub fn JxlDecoderDCOutBufferSize(
+    //     dec: *const JxlDecoder,
+    //     format: *const JxlPixelFormat,
+    //     size: *mut usize,
+    // ) -> JxlDecoderStatus;
+
+    // Deprecated
+    // pub fn JxlDecoderSetDCOutBuffer(
+    //     dec: *mut JxlDecoder,
+    //     format: *const JxlPixelFormat,
+    //     buffer: *mut c_void,
+    //     size: usize,
+    // ) -> JxlDecoderStatus;
+
+    pub fn JxlDecoderImageOutBufferSize(
         dec: *const JxlDecoder,
         format: *const JxlPixelFormat,
         size: *mut usize,
     ) -> JxlDecoderStatus;
 
-    pub fn JxlDecoderSetDCOutBuffer(
+    pub fn JxlDecoderSetImageOutBuffer(
         dec: *mut JxlDecoder,
         format: *const JxlPixelFormat,
         buffer: *mut c_void,
         size: usize,
     ) -> JxlDecoderStatus;
 
-    pub fn JxlDecoderImageOutBufferSize(
+    pub fn JxlDecoderSetImageOutCallback(
+        dec: *mut JxlDecoder,
+        format: *const JxlPixelFormat,
+        callback: JxlImageOutCallback,
+        opaque: *mut c_void,
+    ) -> JxlDecoderStatus;
+
+    pub fn JxlDecoderExtraChannelBufferSize(
         dec: *const JxlDecoder,
         format: *const JxlPixelFormat,
         size: *mut usize,
+        index: u32,
+    ) -> JxlDecoderStatus;
+
+    pub fn JxlDecoderSetExtraChannelBuffer(
+        dec: *mut JxlDecoder,
+        format: *const JxlPixelFormat,
+        buffer: *mut c_void,
+        size: usize,
+        index: u32,
     ) -> JxlDecoderStatus;
 
     pub fn JxlDecoderSetJPEGBuffer(
@@ -190,13 +237,6 @@ extern "C" {
     ) -> JxlDecoderStatus;
 
     pub fn JxlDecoderReleaseJPEGBuffer(dec: *mut JxlDecoder) -> usize;
-
-    pub fn JxlDecoderSetImageOutBuffer(
-        dec: *mut JxlDecoder,
-        format: *const JxlPixelFormat,
-        buffer: *mut c_void,
-        size: usize,
-    ) -> JxlDecoderStatus;
 
     pub fn JxlDecoderFlushImage(dec: *mut JxlDecoder) -> JxlDecoderStatus;
 }

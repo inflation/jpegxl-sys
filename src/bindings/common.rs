@@ -17,14 +17,22 @@ along with jpegxl-sys.  If not, see <https://www.gnu.org/licenses/>.
 
 use std::{ffi::c_void, os::raw::c_int};
 
+#[repr(i32)]
+#[derive(Clone, Copy)]
+pub enum JxlBool {
+    True = 1,
+    False = 0,
+}
+
 #[repr(C)]
-#[derive(Clone)]
+#[derive(Clone, Copy)]
 pub enum JxlDataType {
     Float = 0,
     Boolean,
     Uint8,
     Uint16,
     Uint32,
+    Float16,
 }
 
 #[repr(C)]
@@ -45,7 +53,7 @@ pub struct JxlPixelFormat {
 }
 
 #[repr(C)]
-#[derive(Clone)]
+#[derive(Clone, Copy)]
 pub enum JxlColorSpace {
     Rgb = 0,
     Gray,
@@ -54,7 +62,7 @@ pub enum JxlColorSpace {
 }
 
 #[repr(C)]
-#[derive(Clone)]
+#[derive(Clone, Copy)]
 pub enum JxlWhitePoint {
     D65 = 1,
     Custom = 2,
@@ -63,7 +71,7 @@ pub enum JxlWhitePoint {
 }
 
 #[repr(C)]
-#[derive(Clone)]
+#[derive(Clone, Copy)]
 pub enum JxlPrimaries {
     SRgb = 1,
     Custom = 2,
@@ -72,7 +80,7 @@ pub enum JxlPrimaries {
 }
 
 #[repr(C)]
-#[derive(Clone)]
+#[derive(Clone, Copy)]
 pub enum JxlTransferFunction {
     Rec709 = 1,
     Unknown = 2,
@@ -85,7 +93,7 @@ pub enum JxlTransferFunction {
 }
 
 #[repr(C)]
-#[derive(Clone)]
+#[derive(Clone, Copy)]
 pub enum JxlRenderingIntent {
     Perceptual = 0,
     Relative,
@@ -106,13 +114,6 @@ pub struct JxlColorEncoding {
     pub transfer_function: JxlTransferFunction,
     pub gamma: f64,
     pub rendering_intent: JxlRenderingIntent,
-}
-
-#[repr(C)]
-pub struct JxlInverseOpsinMatrix {
-    pub opsin_inv_matrix: [[f32; 3usize]; 3usize],
-    pub opsin_biases: [f32; 3usize],
-    pub quant_biases: [f32; 3usize],
 }
 
 #[repr(C)]
@@ -160,7 +161,7 @@ pub struct JxlAnimationHeader {
     pub tps_numerator: u32,
     pub tps_denominator: u32,
     pub num_loops: u32,
-    pub have_timecodes: bool,
+    pub have_timecodes: JxlBool,
 }
 
 #[repr(C)]
@@ -185,6 +186,7 @@ pub struct JxlBasicInfo {
     pub alpha_premultiplied: i32,
     pub preview: JxlPreviewHeader,
     pub animation: JxlAnimationHeader,
+    _padding: [u8; 108],
 }
 
 #[repr(C)]
@@ -194,7 +196,7 @@ pub struct JxlExtraChannelInfo {
     pub exponent_bits_per_sample: u32,
     pub dim_shift: u32,
     pub name_length: u32,
-    pub alpha_associated: bool,
+    pub alpha_associated: JxlBool,
     pub spot_color: [f32; 4usize],
     pub cfa_channel: u32,
 }
@@ -209,7 +211,7 @@ pub struct JxlFrameHeader {
     pub duration: u32,
     pub timecode: u32,
     pub name_length: u32,
-    pub is_last: bool,
+    pub is_last: JxlBool,
 }
 
 pub type JpegxlAllocFunc = unsafe extern "C" fn(opaque: *mut c_void, size: usize) -> *mut c_void;
@@ -240,7 +242,7 @@ pub type JxlParallelRunner = unsafe extern "C" fn(
 ) -> JxlParallelRetCode;
 
 #[repr(C)]
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone, Copy)]
 pub enum JxlSignature {
     NotEnoughBytes = 0,
     Invalid = 1,
@@ -249,6 +251,7 @@ pub enum JxlSignature {
 }
 
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub enum JxlColorProfileTarget {
     Original,
     Data,

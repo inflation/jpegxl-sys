@@ -81,6 +81,14 @@ extern "C" {
         color: *const JxlColorEncoding,
     ) -> JxlEncoderStatus;
 
+    pub fn JxlEncoderSetICCProfile(
+        enc: *mut JxlEncoder,
+        icc_profile: *const u8,
+        size: usize,
+    ) -> JxlEncoderStatus;
+
+    pub fn JxlEncoderInitBasicInfo(info: *mut JxlBasicInfo);
+
     pub fn JxlEncoderSetBasicInfo(
         enc: *mut JxlEncoder,
         info: *const JxlBasicInfo,

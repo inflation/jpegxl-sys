@@ -5,7 +5,7 @@ use std::{
     process::Output,
 };
 
-const VERSION: &str = "v0.3.7";
+const VERSION: &str = "v0.6";
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     setup_jpegxl()?;
@@ -51,7 +51,7 @@ fn build() -> Result<(), Box<dyn std::error::Error>> {
     use cmake::Config;
     use std::process::Command;
 
-    let source: PathBuf = [&env::var("OUT_DIR")?, "jpeg-xl"].iter().collect();
+    let source: PathBuf = [&env::var("OUT_DIR")?, "libjxl"].iter().collect();
     let source_str = source.to_str().ok_or("Source path is invalid UTF-8")?;
 
     if source.exists() {
@@ -65,11 +65,11 @@ fn build() -> Result<(), Box<dyn std::error::Error>> {
                 "clone",
                 "--depth=1",
                 &format!("--branch={}", VERSION),
-                "https://gitlab.com/wg1/jpeg-xl.git",
+                "https://github.com/libjxl/libjxl.git",
                 source_str,
             ])
             .output()
-            .and_then(check_status("Failed to clone jpeg-xl!"))?;
+            .and_then(check_status("Failed to clone libjxl"))?;
     }
     Command::new("git")
         .args(&["-C", source_str, "submodule", "init"])
@@ -80,32 +80,6 @@ fn build() -> Result<(), Box<dyn std::error::Error>> {
         .output()
         .and_then(check_status("Failed to update submodule!"))?;
 
-    // macOS(iOS) doesn't support `-static`, this comment out the flag
-    #[cfg(any(target_os = "macos", target_os = "ios"))]
-    Command::new("sed")
-        .args(&[
-            "-i.bak",
-            "152,153s/^/#/",
-            source.join("CMakeLists.txt").to_str().unwrap(),
-        ])
-        .output()
-        .and_then(check_status("Edit CMakeLists failed"))?;
-
-    // Disable binary tools
-    #[cfg(not(target_os = "windows"))]
-    Command::new("sed")
-        .args(&[
-            "-i.bak",
-            "61,118s/^/#/",
-            source
-                .join("tools")
-                .join("CMakeLists.txt")
-                .to_str()
-                .unwrap(),
-        ])
-        .output()
-        .and_then(check_status("Disable binary failed!"))?;
-
     env::set_var("CMAKE_BUILD_PARALLEL_LEVEL", format!("{}", num_cpus::get()));
 
     let mut config = Config::new(&source);
@@ -113,8 +87,11 @@ fn build() -> Result<(), Box<dyn std::error::Error>> {
         .define("BUILD_GMOCK", "OFF")
         .define("BUILD_TESTING", "OFF")
         .define("INSTALL_GTEST", "OFF")
+        .define("JPEGXL_ENABLE_TOOLS", "OFF")
+        .define("JPEGXL_ENABLE_MANPAGES", "OFF")
         .define("JPEGXL_ENABLE_BENCHMARK", "OFF")
         .define("JPEGXL_ENABLE_EXAMPLES", "OFF")
+        .define("JPEGXL_ENABLE_JNI", "OFF")
         .define("JPEGXL_ENABLE_OPENEXR", "OFF")
         .define("JPEGXL_STATIC", "ON");
 
@@ -133,7 +110,6 @@ fn build() -> Result<(), Box<dyn std::error::Error>> {
 
     prefix.push("build");
     prefix.push("third_party");
-    println!("cargo:rustc-link-lib=static=skcms");
     println!("cargo:rustc-link-search=native={}", prefix.display());
 
     println!("cargo:rustc-link-lib=static=brotlicommon-static");

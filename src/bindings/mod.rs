@@ -22,5 +22,8 @@ pub mod encoder;
 
 pub use {common::*, decoder::*, encoder::*};
 
-#[cfg(not(feature = "without-thread"))]
-pub mod thread_runner;
+#[cfg(feature = "threads")]
+pub mod parallel_runner;
+
+#[cfg(feature = "threads")]
+pub mod resizable_parallel_runner;
