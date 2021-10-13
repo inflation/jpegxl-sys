@@ -24,6 +24,25 @@ pub enum JxlBool {
     False = 0,
 }
 
+impl From<JxlBool> for bool {
+    fn from(b: JxlBool) -> Self {
+        match b {
+            JxlBool::True => true,
+            JxlBool::False => false,
+        }
+    }
+}
+
+impl From<bool> for JxlBool {
+    fn from(b: bool) -> Self {
+        if b {
+            JxlBool::True
+        } else {
+            JxlBool::False
+        }
+    }
+}
+
 #[repr(C)]
 #[derive(Clone, Copy)]
 pub enum JxlDataType {
@@ -166,24 +185,24 @@ pub struct JxlAnimationHeader {
 
 #[repr(C)]
 pub struct JxlBasicInfo {
-    pub have_container: i32,
+    pub have_container: JxlBool,
     pub xsize: u32,
     pub ysize: u32,
     pub bits_per_sample: u32,
     pub exponent_bits_per_sample: u32,
     pub intensity_target: f32,
     pub min_nits: f32,
-    pub relative_to_max_display: i32,
+    pub relative_to_max_display: JxlBool,
     pub linear_below: f32,
-    pub uses_original_profile: i32,
-    pub have_preview: i32,
-    pub have_animation: i32,
+    pub uses_original_profile: JxlBool,
+    pub have_preview: JxlBool,
+    pub have_animation: JxlBool,
     pub orientation: JxlOrientation,
     pub num_color_channels: u32,
     pub num_extra_channels: u32,
     pub alpha_bits: u32,
     pub alpha_exponent_bits: u32,
-    pub alpha_premultiplied: i32,
+    pub alpha_premultiplied: JxlBool,
     pub preview: JxlPreviewHeader,
     pub animation: JxlAnimationHeader,
     _padding: [u8; 108],
