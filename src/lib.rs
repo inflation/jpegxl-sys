@@ -84,8 +84,8 @@ mod test {
     #[test]
     fn test_bindings_version() {
         unsafe {
-            assert_eq!(JxlDecoderVersion(), 6000);
-            assert_eq!(JxlEncoderVersion(), 6000);
+            assert_eq!(JxlDecoderVersion(), 6001);
+            assert_eq!(JxlEncoderVersion(), 6001);
         }
     }
 
