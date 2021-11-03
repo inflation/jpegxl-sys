@@ -5,7 +5,7 @@ use std::{
     process::Output,
 };
 
-const VERSION: &str = "v0.6";
+const VERSION: &str = "v0.6.1";
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     setup_jpegxl()?;
