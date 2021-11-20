@@ -32,7 +32,7 @@ pub struct JxlEncoderOptions {
 }
 
 #[repr(C)]
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone, Copy)]
 pub enum JxlEncoderStatus {
     Success = 0,
     Error = 1,

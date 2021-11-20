@@ -1,6 +1,16 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+## [unreleased]
+
+### CI
+
+- Fix unit tests
+
+### Features
+
+- :label: Add derived traits to all types
+
 ## [0.6.1] - 2021-11-03
 
 ### Build

@@ -2,7 +2,7 @@
 authors = ["Inflation <hypernovagama@gmail.com>"]
 categories = ["external-ffi-bindings", "encoding", "multimedia::images"]
 description = "Rust wrapper for JPEG XL reference implementation"
-edition = "2018"
+edition = "2021"
 exclude = ["test/"]
 keywords = ["jpeg-xl", "jxl"]
 license = "GPL-3.0-or-later"
@@ -10,7 +10,7 @@ links = "jxl"
 name = "jpegxl-sys"
 readme = "README.md"
 repository = "https://github.com/inflation/jpegxl-sys"
-version = "0.6.1"
+version = "0.7.0-alpha1"
 
 [package.metadata.docs.rs]
 features = ["system-jxl"]

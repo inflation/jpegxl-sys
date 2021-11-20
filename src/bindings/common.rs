@@ -18,7 +18,7 @@ along with jpegxl-sys.  If not, see <https://www.gnu.org/licenses/>.
 use std::{ffi::c_void, os::raw::c_int};
 
 #[repr(i32)]
-#[derive(Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum JxlBool {
     True = 1,
     False = 0,
@@ -44,7 +44,7 @@ impl From<bool> for JxlBool {
 }
 
 #[repr(C)]
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum JxlDataType {
     Float = 0,
     Boolean,
@@ -55,7 +55,7 @@ pub enum JxlDataType {
 }
 
 #[repr(C)]
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum JxlEndianness {
     Native = 0,
     Little,
@@ -63,7 +63,7 @@ pub enum JxlEndianness {
 }
 
 #[repr(C)]
-#[derive(Clone)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct JxlPixelFormat {
     pub num_channels: u32,
     pub data_type: JxlDataType,
@@ -72,7 +72,7 @@ pub struct JxlPixelFormat {
 }
 
 #[repr(C)]
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum JxlColorSpace {
     Rgb = 0,
     Gray,
@@ -81,7 +81,7 @@ pub enum JxlColorSpace {
 }
 
 #[repr(C)]
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum JxlWhitePoint {
     D65 = 1,
     Custom = 2,
@@ -90,7 +90,7 @@ pub enum JxlWhitePoint {
 }
 
 #[repr(C)]
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum JxlPrimaries {
     SRgb = 1,
     Custom = 2,
@@ -99,7 +99,7 @@ pub enum JxlPrimaries {
 }
 
 #[repr(C)]
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum JxlTransferFunction {
     Rec709 = 1,
     Unknown = 2,
@@ -112,7 +112,7 @@ pub enum JxlTransferFunction {
 }
 
 #[repr(C)]
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum JxlRenderingIntent {
     Perceptual = 0,
     Relative,
@@ -121,7 +121,7 @@ pub enum JxlRenderingIntent {
 }
 
 #[repr(C)]
-#[derive(Clone)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct JxlColorEncoding {
     pub color_space: JxlColorSpace,
     pub white_point: JxlWhitePoint,
@@ -136,7 +136,7 @@ pub struct JxlColorEncoding {
 }
 
 #[repr(C)]
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum JxlOrientation {
     Identity = 1,
     FlipHorizontal = 2,
@@ -149,6 +149,7 @@ pub enum JxlOrientation {
 }
 
 #[repr(C)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum JxlExtraChannelType {
     Alpha,
     Depth,
@@ -170,12 +171,14 @@ pub enum JxlExtraChannelType {
 }
 
 #[repr(C)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct JxlPreviewHeader {
     pub xsize: u32,
     pub ysize: u32,
 }
 
 #[repr(C)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct JxlAnimationHeader {
     pub tps_numerator: u32,
     pub tps_denominator: u32,
@@ -184,6 +187,7 @@ pub struct JxlAnimationHeader {
 }
 
 #[repr(C)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct JxlBasicInfo {
     pub have_container: JxlBool,
     pub xsize: u32,
@@ -209,6 +213,7 @@ pub struct JxlBasicInfo {
 }
 
 #[repr(C)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct JxlExtraChannelInfo {
     pub type_: JxlExtraChannelType,
     pub bits_per_sample: u32,
@@ -221,11 +226,13 @@ pub struct JxlExtraChannelInfo {
 }
 
 #[repr(C)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct JxlHeaderExtensions {
     pub extensions: u64,
 }
 
 #[repr(C)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct JxlFrameHeader {
     pub duration: u32,
     pub timecode: u32,
@@ -237,6 +244,7 @@ pub type JpegxlAllocFunc = unsafe extern "C" fn(opaque: *mut c_void, size: usize
 pub type JpegxlFreeFunc = unsafe extern "C" fn(opaque: *mut c_void, address: *mut c_void);
 
 #[repr(C)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct JxlMemoryManager {
     pub opaque: *mut c_void,
     pub alloc: JpegxlAllocFunc,
@@ -270,7 +278,7 @@ pub enum JxlSignature {
 }
 
 #[repr(C)]
-#[derive(Clone, Copy)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum JxlColorProfileTarget {
     Original,
     Data,

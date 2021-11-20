@@ -29,7 +29,7 @@ pub struct JxlDecoder {
 }
 
 #[repr(C)]
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone, Copy)]
 pub enum JxlDecoderStatus {
     Success = 0,
     Error = 1,
@@ -180,20 +180,26 @@ extern "C" {
         size: usize,
     ) -> JxlDecoderStatus;
 
-    // Deprecated
-    // pub fn JxlDecoderDCOutBufferSize(
-    //     dec: *const JxlDecoder,
-    //     format: *const JxlPixelFormat,
-    //     size: *mut usize,
-    // ) -> JxlDecoderStatus;
+    #[deprecated(
+        since = "0.5.0",
+        note = "please use `JxlDecoderSetImageOutCallback` instead"
+    )]
+    pub fn JxlDecoderDCOutBufferSize(
+        dec: *const JxlDecoder,
+        format: *const JxlPixelFormat,
+        size: *mut usize,
+    ) -> JxlDecoderStatus;
 
-    // Deprecated
-    // pub fn JxlDecoderSetDCOutBuffer(
-    //     dec: *mut JxlDecoder,
-    //     format: *const JxlPixelFormat,
-    //     buffer: *mut c_void,
-    //     size: usize,
-    // ) -> JxlDecoderStatus;
+    #[deprecated(
+        since = "0.5.0",
+        note = "please use `JxlDecoderSetImageOutCallback` instead"
+    )]
+    pub fn JxlDecoderSetDCOutBuffer(
+        dec: *mut JxlDecoder,
+        format: *const JxlPixelFormat,
+        buffer: *mut c_void,
+        size: usize,
+    ) -> JxlDecoderStatus;
 
     pub fn JxlDecoderImageOutBufferSize(
         dec: *const JxlDecoder,
