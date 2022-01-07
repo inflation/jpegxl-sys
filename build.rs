@@ -97,7 +97,7 @@ fn build() -> Result<(), Box<dyn std::error::Error>> {
         .define("JPEGXL_ENABLE_EXAMPLES", "OFF")
         .define("JPEGXL_ENABLE_JNI", "OFF")
         .define("JPEGXL_ENABLE_OPENEXR", "OFF")
-        .define("JPEGXL_STATIC", "ON");
+        .define("BUILD_SHARED_LIBS", "OFF");
 
     let mut prefix = config.build();
 
