@@ -18,6 +18,7 @@ features = ["system-jxl"]
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [build-dependencies]
+pkg-config = "0.3.24"
 cmake = "0.1.45"
 num_cpus = "1.13.0"
 
