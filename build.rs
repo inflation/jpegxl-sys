@@ -126,9 +126,9 @@ fn build() -> Result<(), Box<dyn std::error::Error>> {
 
     #[cfg(feature = "threads")]
     {
-        #[cfg(any(target_os = "macos", target_os = "ios"))]
+        #[cfg(any(target_os = "macos", target_os = "ios", target_os = "freebsd"))]
         println!("cargo:rustc-link-lib=c++");
-        #[cfg(not(any(target_os = "macos", target_os = "ios")))]
+        #[cfg(not(any(target_os = "macos", target_os = "ios", target_os = "freebsd")))]
         println!("cargo:rustc-link-lib=stdc++");
     }
 
