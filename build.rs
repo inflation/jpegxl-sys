@@ -16,16 +16,20 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 fn setup_jpegxl() -> Result<(), Box<dyn std::error::Error>> {
     #[cfg(feature = "system-jxl")]
     {
-        println!("cargo:rustc-link-lib=jxl");
-
-        #[cfg(feature = "threads")]
-        println!("cargo:rustc-link-lib=jxl_threads");
-
-        env::var("DEP_JXL_LIB")
-            .map(|l| {
-                println!("cargo:rustc-link-search=native={}", l);
-            })
-            .ok();
+        if let Ok(path) = env::var("DEP_JXL_LIB") {
+            println!("cargo:rustc-link-search=native={}", path);
+            println!("cargo:rustc-link-lib=jxl");
+            #[cfg(feature = "threads")]
+            println!("cargo:rustc-link-lib=jxl_threads");
+        } else {
+            pkg_config::Config::new()
+                .atleast_version("0.6.1")
+                .probe("libjxl")?;
+            #[cfg(feature = "threads")]
+            pkg_config::Config::new()
+                .atleast_version("0.6.1")
+                .probe("libjxl_threads")?;
+        }
 
         Ok(())
     }
@@ -93,7 +97,7 @@ fn build() -> Result<(), Box<dyn std::error::Error>> {
         .define("JPEGXL_ENABLE_EXAMPLES", "OFF")
         .define("JPEGXL_ENABLE_JNI", "OFF")
         .define("JPEGXL_ENABLE_OPENEXR", "OFF")
-        .define("JPEGXL_STATIC", "ON");
+        .define("BUILD_SHARED_LIBS", "OFF");
 
     let mut prefix = config.build();
 
@@ -122,9 +126,9 @@ fn build() -> Result<(), Box<dyn std::error::Error>> {
 
     #[cfg(feature = "threads")]
     {
-        #[cfg(any(target_os = "macos", target_os = "ios"))]
+        #[cfg(any(target_os = "macos", target_os = "ios", target_os = "freebsd"))]
         println!("cargo:rustc-link-lib=c++");
-        #[cfg(not(any(target_os = "macos", target_os = "ios")))]
+        #[cfg(not(any(target_os = "macos", target_os = "ios", target_os = "freebsd")))]
         println!("cargo:rustc-link-lib=stdc++");
     }
 
