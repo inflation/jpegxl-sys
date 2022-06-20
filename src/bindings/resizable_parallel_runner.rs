@@ -17,7 +17,9 @@ along with jpegxl-sys.  If not, see <https://www.gnu.org/licenses/>.
 
 use std::ffi::c_void;
 
-use crate::common::*;
+use crate::common::{
+    JxlMemoryManager, JxlParallelRetCode, JxlParallelRunFunction, JxlParallelRunInit,
+};
 
 extern "C" {
     pub fn JxlResizableParallelRunner(

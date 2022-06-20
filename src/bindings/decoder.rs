@@ -20,9 +20,13 @@ use std::{
     os::raw::{c_char, c_int},
 };
 
-use crate::common::*;
+use crate::common::{
+    JxlBasicInfo, JxlColorEncoding, JxlColorProfileTarget, JxlExtraChannelInfo, JxlFrameHeader,
+    JxlMemoryManager, JxlParallelRunner, JxlPixelFormat, JxlSignature,
+};
 
 // Opaque type
+#[allow(clippy::module_name_repetitions)]
 #[repr(C)]
 pub struct JxlDecoder {
     _unused: [u8; 0],

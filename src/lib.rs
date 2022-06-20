@@ -15,12 +15,10 @@ You should have received a copy of the GNU General Public License
 along with jpegxl-sys.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-#![allow(clippy::redundant_static_lifetimes)]
-#![allow(clippy::too_many_arguments)]
+#![warn(clippy::pedantic)]
 
 pub mod bindings;
 
-// include!(concat!(env!("OUT_DIR"), "/bindings.rs"));
 pub use bindings::*;
 
 macro_rules! trait_impl {
@@ -59,7 +57,10 @@ pub trait NewUninit {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::parallel_runner::*;
+    use crate::parallel_runner::{
+        JxlThreadParallelRunner, JxlThreadParallelRunnerCreate,
+        JxlThreadParallelRunnerDefaultNumWorkerThreads, JxlThreadParallelRunnerDestroy,
+    };
     use std::ptr;
 
     use image::io::Reader as ImageReader;
@@ -90,10 +91,12 @@ mod test {
     }
 
     unsafe fn decode(decoder: *mut JxlDecoder, sample: &[u8]) {
-        let mut status;
+        use JxlDecoderStatus::{
+            BasicInfo, Error, FullImage, NeedImageOutBuffer, NeedMoreInput, Success,
+        };
 
         // Stop after getting the basic info and decoding the image
-        status = JxlDecoderSubscribeEvents(
+        let mut status = JxlDecoderSubscribeEvents(
             decoder,
             jxl_dec_events!(JxlDecoderStatus::BasicInfo, JxlDecoderStatus::FullImage),
         );
@@ -115,13 +118,12 @@ mod test {
 
         let mut basic_info = JxlBasicInfo::new_uninit().assume_init();
         let mut buffer: Vec<f32> = Vec::new();
-        let mut xsize = 0;
-        let mut ysize = 0;
+        let mut x_size = 0;
+        let mut y_size = 0;
 
         status = JxlDecoderSetInput(decoder, next_in, avail_in);
         jxl_dec_assert!(status, "Set input");
 
-        use JxlDecoderStatus::*;
         loop {
             status = JxlDecoderProcessInput(decoder);
 
@@ -135,8 +137,8 @@ mod test {
                 BasicInfo => {
                     status = JxlDecoderGetBasicInfo(decoder, &mut basic_info);
                     jxl_dec_assert!(status, "BasicInfo");
-                    xsize = basic_info.xsize;
-                    ysize = basic_info.ysize;
+                    x_size = basic_info.xsize;
+                    y_size = basic_info.ysize;
                     assert_eq!(basic_info.xsize, 40, "Width");
                     assert_eq!(basic_info.ysize, 50, "Height");
                 }
@@ -151,7 +153,7 @@ mod test {
                     status = JxlDecoderSetImageOutBuffer(
                         decoder,
                         &pixel_format,
-                        buffer.as_mut_ptr() as *mut std::ffi::c_void,
+                        buffer.as_mut_ptr().cast(),
                         size,
                     );
                     jxl_dec_assert!(status, "SetBuffer");
@@ -159,7 +161,7 @@ mod test {
 
                 FullImage => continue,
                 Success => {
-                    assert_eq!(buffer.len(), (xsize * ysize * 3) as usize);
+                    assert_eq!(buffer.len(), (x_size * y_size * 3) as usize);
                     return;
                 }
                 _ => panic!("Unknown decoder status: {:#?}", status),
@@ -208,7 +210,15 @@ mod test {
     #[test]
     #[cfg(feature = "threads")]
     fn test_bindings_resizable() {
-        use crate::resizable_parallel_runner::*;
+        use JxlDecoderStatus::{
+            BasicInfo, Error, FullImage, NeedImageOutBuffer, NeedMoreInput, Success,
+        };
+
+        use crate::resizable_parallel_runner::{
+            JxlResizableParallelRunner, JxlResizableParallelRunnerCreate,
+            JxlResizableParallelRunnerDestroy, JxlResizableParallelRunnerSetThreads,
+            JxlResizableParallelRunnerSuggestThreads,
+        };
 
         unsafe {
             let runner = JxlResizableParallelRunnerCreate(std::ptr::null());
@@ -221,10 +231,9 @@ mod test {
             jxl_dec_assert!(status, "Set Parallel Runner");
 
             let sample = std::fs::read("test/sample.jxl").unwrap();
-            let mut status;
 
             // Stop after getting the basic info and decoding the image
-            status = JxlDecoderSubscribeEvents(
+            let mut status = JxlDecoderSubscribeEvents(
                 dec,
                 jxl_dec_events!(JxlDecoderStatus::BasicInfo, JxlDecoderStatus::FullImage),
             );
@@ -246,13 +255,12 @@ mod test {
 
             let mut basic_info = JxlBasicInfo::new_uninit().assume_init();
             let mut buffer: Vec<f32> = Vec::new();
-            let mut xsize = 0;
-            let mut ysize = 0;
+            let mut x_size = 0;
+            let mut y_size = 0;
 
             status = JxlDecoderSetInput(dec, next_in, avail_in);
             jxl_dec_assert!(status, "Set input");
 
-            use JxlDecoderStatus::*;
             loop {
                 status = JxlDecoderProcessInput(dec);
 
@@ -266,11 +274,13 @@ mod test {
                     BasicInfo => {
                         status = JxlDecoderGetBasicInfo(dec, &mut basic_info);
                         jxl_dec_assert!(status, "BasicInfo");
-                        xsize = basic_info.xsize;
-                        ysize = basic_info.ysize;
+                        x_size = basic_info.xsize;
+                        y_size = basic_info.ysize;
 
-                        let num_threads =
-                            JxlResizableParallelRunnerSuggestThreads(xsize as u64, ysize as u64);
+                        let num_threads = JxlResizableParallelRunnerSuggestThreads(
+                            u64::from(x_size),
+                            u64::from(y_size),
+                        );
                         JxlResizableParallelRunnerSetThreads(runner, num_threads as usize);
 
                         assert_eq!(basic_info.xsize, 40, "Width");
@@ -287,7 +297,7 @@ mod test {
                         status = JxlDecoderSetImageOutBuffer(
                             dec,
                             &pixel_format,
-                            buffer.as_mut_ptr() as *mut std::ffi::c_void,
+                            buffer.as_mut_ptr().cast(),
                             size,
                         );
                         jxl_dec_assert!(status, "SetBuffer");
@@ -295,7 +305,7 @@ mod test {
 
                     FullImage => continue,
                     Success => {
-                        assert_eq!(buffer.len(), (xsize * ysize * 3) as usize);
+                        assert_eq!(buffer.len(), (x_size * y_size * 3) as usize);
                         break;
                     }
                     _ => panic!("Unknown decoder status: {:#?}", status),
@@ -307,7 +317,7 @@ mod test {
         }
     }
 
-    fn encode(pixels: &[u8], xsize: u32, ysize: u32) -> Vec<u8> {
+    fn encode(pixels: &[u8], x_size: u32, ysize: u32) -> Vec<u8> {
         unsafe {
             let enc = JxlEncoderCreate(std::ptr::null());
 
@@ -321,7 +331,7 @@ mod test {
 
             let mut basic_info = JxlBasicInfo::new_uninit().assume_init();
             JxlEncoderInitBasicInfo(&mut basic_info);
-            basic_info.xsize = xsize;
+            basic_info.xsize = x_size;
             basic_info.ysize = ysize;
 
             status = JxlEncoderSetBasicInfo(enc, &basic_info);
@@ -346,14 +356,14 @@ mod test {
             );
             jxl_enc_assert!(status, "Add Image Frame");
 
-            const CHUNK_SIZE: usize = 1024 * 512; // 512 KB is a good initial value
-            let mut buffer = vec![0u8; CHUNK_SIZE];
+            let chunk_size = 1024 * 512; // 512 KB is a good initial value
+            let mut buffer = vec![0u8; chunk_size];
             let mut next_out = buffer.as_mut_ptr();
-            let mut avail_out = CHUNK_SIZE;
+            let mut avail_out = chunk_size;
 
             loop {
                 status =
-                    JxlEncoderProcessOutput(enc, &mut next_out as *mut *mut u8, &mut avail_out);
+                    JxlEncoderProcessOutput(enc, std::ptr::addr_of_mut!(next_out), &mut avail_out);
 
                 if status != JxlEncoderStatus::NeedMoreOutput {
                     break;

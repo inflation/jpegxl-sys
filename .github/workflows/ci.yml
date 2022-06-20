@@ -25,11 +25,12 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: build
+          args: --features vendored
       - name: Build without feature `threads`
         uses: actions-rs/cargo@v1
         with:
           command: build
-          args: --no-default-features
+          args: --no-default-features --features vendored
 
   test:
     name: Unit Tests
@@ -48,6 +49,7 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: test
+          args: --features vendored
 
   clippy:
     name: Clippy
@@ -64,7 +66,7 @@ jobs:
         uses: actions-rs/clippy-check@v1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          args: -- -D warnings
+          args: --features vendored -- -D warnings
 
   fmt:
     name: Rustfmt

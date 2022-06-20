@@ -4,10 +4,11 @@
 
 ## Building
 
-Building `libjxl` and statically linking is by default, requiring `git` command in `PATH`.
+If you wish to specify a custom library path, set `DEP_JXL_LIB` environment variable.
 
-If you wish to use existing library and dynamic linking, then use the feature `system-jxl`. Set the custom include path
-and lib path with `DEP_JXL_INCLUDE` and `DEP_JXL_LIB` respectively.
+Building `libjxl` and statically linking can be enabled by using `vendored` feature.
+You can provide the source code with all third-party dependencies by `DEP_JXL_PATH`,
+or it would fetch the code by `git`.
 
 ## Usage
 

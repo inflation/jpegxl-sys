@@ -10,22 +10,19 @@ links = "jxl"
 name = "jpegxl-sys"
 readme = "README.md"
 repository = "https://github.com/inflation/jpegxl-sys"
-version = "0.7.0-alpha1"
-
-[package.metadata.docs.rs]
-features = ["system-jxl"]
+version = "0.6.2-alpha0"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [build-dependencies]
-pkg-config = "0.3.24"
-cmake = "0.1.45"
-num_cpus = "1.13.0"
+pkg-config = "0.3.25"
+cmake = "0.1.48"
+num_cpus = "1.13.1"
 
 [dev-dependencies]
-image = { version = "0.23.14", default-features = false, features = ["png"] }
+image = { version = "0.24.2", default-features = false, features = ["png"] }
 
 [features]
 default = ["threads"]
-system-jxl = []
+vendored = []
 threads = []

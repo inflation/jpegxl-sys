@@ -17,9 +17,12 @@ along with jpegxl-sys.  If not, see <https://www.gnu.org/licenses/>.
 
 use std::{ffi::c_void, os::raw::c_int};
 
-use crate::common::*;
+use crate::common::{
+    JxlBasicInfo, JxlColorEncoding, JxlMemoryManager, JxlParallelRunner, JxlPixelFormat,
+};
 
 // Opaque type
+#[allow(clippy::module_name_repetitions)]
 #[repr(C)]
 pub struct JxlEncoder {
     _unused: [u8; 0],
