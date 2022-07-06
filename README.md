@@ -1,3 +1,5 @@
+## This repo is archived. It has been moved to a subdirectory under [jpegxl-rs](https://github.com/inflation/jpegxl-rs)
+
 # jpegxl-sys
 
 `jpegxl-sys` is a wrapper over `libjxl` library. Check out the original library [here](https://github.com/libjxl/libjxl).
